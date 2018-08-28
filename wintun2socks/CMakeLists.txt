@@ -13,7 +13,8 @@ set (WINTUN2SOCKS_SOURCE
 	Wintun.h
 	sys_arch.c
 )
-badvpn_add_shared_library(wintun2socks "lwip" "" "${WINTUN2SOCKS_SOURCE}" SHARED)
+add_library(wintun2socks SHARED "${WINTUN2SOCKS_SOURCE}")
+target_link_libraries(wintun2socks lwip)
 set_target_properties(wintun2socks PROPERTIES VS_WINRT_COMPONENT TRUE)
 
 target_compile_options(wintun2socks PRIVATE "/TP") # compile with cpp
