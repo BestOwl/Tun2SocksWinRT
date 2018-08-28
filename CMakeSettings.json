@@ -28,7 +28,7 @@
           "value": "1"
         },
         {
-          "name": "BUILD_WINTUN2SOCKS",
+          "name": "BUILD_TUN2SOCKS",
           "value": "1"
         }
       ]
