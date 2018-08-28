@@ -28,7 +28,7 @@
           "value": "1"
         },
         {
-          "name": "BUILD_LWIP",
+          "name": "BUILD_WINTUN2SOCKS",
           "value": "1"
         }
       ]
