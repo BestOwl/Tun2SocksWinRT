@@ -169,8 +169,10 @@ BReactor ss;
 // set to 1 by terminate
 int quitting;
 
+#ifndef TUN2SOCKS_WINRT
 // TUN device
 BTap device;
+#endif
 
 // device write buffer
 uint8_t *device_write_buf;
@@ -206,6 +208,7 @@ LinkedList1 tcp_clients;
 // number of clients
 int num_clients;
 
+static void tun2socks_Init(PacketRecvInterface *tunnel, int MTU);
 static void terminate (void);
 static void print_help (const char *name);
 static void print_version (void);
@@ -458,6 +461,165 @@ fail0:
     DebugObjectGlobal_Finish();
     
     return 1;
+}
+
+static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
+{
+	// open standard streams
+	open_standard_streams();
+
+	// initialize logger
+	switch (options.logger) {
+	case LOGGER_STDOUT:
+		BLog_InitStdout();
+		break;
+#ifndef BADVPN_USE_WINAPI
+	case LOGGER_SYSLOG:
+		if (!BLog_InitSyslog(options.logger_syslog_ident, options.logger_syslog_facility)) {
+			fprintf(stderr, "Failed to initialize syslog logger\n");
+			goto fail0;
+		}
+		break;
+#endif
+	default:
+		ASSERT(0);
+	}
+
+	// configure logger channels
+	for (int i = 0; i < BLOG_NUM_CHANNELS; i++) {
+		if (options.loglevels[i] >= 0) {
+			BLog_SetChannelLoglevel(i, options.loglevels[i]);
+		}
+		else if (options.loglevel >= 0) {
+			BLog_SetChannelLoglevel(i, options.loglevel);
+		}
+	}
+
+	BLog(BLOG_NOTICE, "initializing "GLOBAL_PRODUCT_NAME" "PROGRAM_NAME" "GLOBAL_VERSION);
+
+	// clear password contents pointer
+	password_file_contents = NULL;
+
+	// initialize network
+	if (!BNetwork_GlobalInit()) {
+		BLog(BLOG_ERROR, "BNetwork_GlobalInit failed");
+		goto fail1;
+	}
+
+	// init time
+	BTime_Init();
+
+	// init reactor
+	if (!BReactor_Init(&ss)) {
+		BLog(BLOG_ERROR, "BReactor_Init failed");
+		goto fail1;
+	}
+
+	// set not quitting
+	quitting = 0;
+
+	// setup signal handler
+	if (!BSignal_Init(&ss, signal_handler, NULL)) {
+		BLog(BLOG_ERROR, "BSignal_Init failed");
+		goto fail2;
+	}
+
+	// TO-DO: Init tunnel
+
+	// NOTE: the order of the following is important:
+	// first device writing must evaluate,
+	// then lwip (so it can send packets to the device),
+	// then device reading (so it can pass received packets to lwip).
+
+	// init device reading
+	PacketPassInterface_Init(&device_read_interface, MTU, device_read_handler_send, NULL, BReactor_PendingGroup(&ss));
+	if (!SinglePacketBuffer_Init(&device_read_buffer, MTU, &device_read_interface, BReactor_PendingGroup(&ss))) {
+		BLog(BLOG_ERROR, "SinglePacketBuffer_Init failed");
+		goto fail4;
+	}
+
+	if (options.udpgw_remote_server_addr) {
+		// compute maximum UDP payload size we need to pass through udpgw
+		udp_mtu = MTU - (int)(sizeof(struct ipv4_header) + sizeof(struct udp_header));
+		if (options.netif_ip6addr) {
+			int udp_ip6_mtu = MTU - (int)(sizeof(struct ipv6_header) + sizeof(struct udp_header));
+			if (udp_mtu < udp_ip6_mtu) {
+				udp_mtu = udp_ip6_mtu;
+			}
+		}
+		if (udp_mtu < 0) {
+			udp_mtu = 0;
+		}
+
+		// make sure our UDP payloads aren't too large for udpgw
+		int udpgw_mtu = udpgw_compute_mtu(udp_mtu);
+		if (udpgw_mtu < 0 || udpgw_mtu > PACKETPROTO_MAXPAYLOAD) {
+			BLog(BLOG_ERROR, "device MTU is too large for UDP");
+			goto fail4a;
+		}
+
+		// init udpgw client
+		if (!SocksUdpGwClient_Init(&udpgw_client, udp_mtu, DEFAULT_UDPGW_MAX_CONNECTIONS, options.udpgw_connection_buffer_size, UDPGW_KEEPALIVE_TIME,
+			socks_server_addr, socks_auth_info, socks_num_auth_info,
+			udpgw_remote_server_addr, UDPGW_RECONNECT_TIME, &ss, NULL, udpgw_client_handler_received
+		)) {
+			BLog(BLOG_ERROR, "SocksUdpGwClient_Init failed");
+			goto fail4a;
+		}
+	}
+
+	// init lwip init job
+	BPending_Init(&lwip_init_job, BReactor_PendingGroup(&ss), lwip_init_job_hadler, NULL);
+	BPending_Set(&lwip_init_job);
+
+	// init device write buffer
+	if (!(device_write_buf = (uint8_t *)BAlloc(MTU))) {
+		BLog(BLOG_ERROR, "BAlloc failed");
+		goto fail5;
+	}
+
+	// init TCP timer
+	// it won't trigger before lwip is initialized, becuase the lwip init is a job
+	BTimer_Init(&tcp_timer, TCP_TMR_INTERVAL, tcp_timer_handler, NULL);
+	BReactor_SetTimer(&ss, &tcp_timer);
+	tcp_timer_mod4 = 0;
+
+	// set no netif
+	have_netif = 0;
+
+	// set no listener
+	listener = NULL;
+	listener_ip6 = NULL;
+
+	// init clients list
+	LinkedList1_Init(&tcp_clients);
+
+	// init number of clients
+	num_clients = 0;
+
+	// enter event loop
+	BLog(BLOG_NOTICE, "entering event loop");
+	BReactor_Exec(&ss);
+
+fail5:
+	BPending_Free(&lwip_init_job);
+	if (options.udpgw_remote_server_addr) {
+		SocksUdpGwClient_Free(&udpgw_client);
+	}
+fail4a:
+	SinglePacketBuffer_Free(&device_read_buffer);
+fail4:
+	PacketPassInterface_Free(&device_read_interface);
+fail3:
+	BSignal_Finish();
+fail2:
+	BReactor_Free(&ss);
+fail1:
+	BFree(password_file_contents);
+	BLog(BLOG_NOTICE, "exiting");
+	BLog_Free();
+fail0:
+	DebugObjectGlobal_Finish();
 }
 
 void terminate (void)
