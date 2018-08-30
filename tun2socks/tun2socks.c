@@ -74,6 +74,10 @@
 
 #include <generated/blog_channel_tun2socks.h>
 
+#ifdef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+#include <tun2socks/SockTun.h>
+#endif 
+
 #define LOGGER_STDOUT 1
 #define LOGGER_SYSLOG 2
 
@@ -169,9 +173,18 @@ BReactor ss;
 // set to 1 by terminate
 int quitting;
 
-#ifndef TUN2SOCKS_WINRT
+#ifndef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
 // TUN device
 BTap device;
+#define device_mtu BTap_GetMTU(&device)
+#else
+BTap device;
+int device_mtu_t;
+#define device_mtu device_mtu_t
+
+HANDLE tunnel;
+BReactorIOCPOverlapped send_olap;
+BReactorIOCPOverlapped recv_olap;
 #endif
 
 // device write buffer
@@ -208,7 +221,6 @@ LinkedList1 tcp_clients;
 // number of clients
 int num_clients;
 
-static void tun2socks_Init(PacketRecvInterface *tunnel, int MTU);
 static void terminate (void);
 static void print_help (const char *name);
 static void print_version (void);
@@ -247,6 +259,7 @@ static int client_socks_recv_send_out (struct tcp_client *client);
 static err_t client_sent_func (void *arg, struct tcp_pcb *tpcb, u16_t len);
 static void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote_addr, const uint8_t *data, int data_len);
 
+#ifndef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
 int main (int argc, char **argv)
 {
     if (argc <= 0) {
@@ -462,7 +475,7 @@ fail0:
     
     return 1;
 }
-
+#else
 static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 {
 	// open standard streams
@@ -524,7 +537,8 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 		goto fail2;
 	}
 
-	// TO-DO: Init tunnel
+	// init winsock as a tun device
+	winsock_init(tun_service_name, mtu);
 
 	// NOTE: the order of the following is important:
 	// first device writing must evaluate,
@@ -532,17 +546,17 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 	// then device reading (so it can pass received packets to lwip).
 
 	// init device reading
-	PacketPassInterface_Init(&device_read_interface, MTU, device_read_handler_send, NULL, BReactor_PendingGroup(&ss));
-	if (!SinglePacketBuffer_Init(&device_read_buffer, MTU, &device_read_interface, BReactor_PendingGroup(&ss))) {
+	PacketPassInterface_Init(&device_read_interface, mtu, device_read_handler_send, NULL, BReactor_PendingGroup(&ss));
+	if (!SinglePacketBuffer_Init(&device_read_buffer, mtu, &device_read_interface, BReactor_PendingGroup(&ss))) {
 		BLog(BLOG_ERROR, "SinglePacketBuffer_Init failed");
 		goto fail4;
 	}
 
 	if (options.udpgw_remote_server_addr) {
 		// compute maximum UDP payload size we need to pass through udpgw
-		udp_mtu = MTU - (int)(sizeof(struct ipv4_header) + sizeof(struct udp_header));
+		udp_mtu = mtu - (int)(sizeof(struct ipv4_header) + sizeof(struct udp_header));
 		if (options.netif_ip6addr) {
-			int udp_ip6_mtu = MTU - (int)(sizeof(struct ipv6_header) + sizeof(struct udp_header));
+			int udp_ip6_mtu = mtu - (int)(sizeof(struct ipv6_header) + sizeof(struct udp_header));
 			if (udp_mtu < udp_ip6_mtu) {
 				udp_mtu = udp_ip6_mtu;
 			}
@@ -573,7 +587,7 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 	BPending_Set(&lwip_init_job);
 
 	// init device write buffer
-	if (!(device_write_buf = (uint8_t *)BAlloc(MTU))) {
+	if (!(device_write_buf = (uint8_t *)BAlloc(mtu))) {
 		BLog(BLOG_ERROR, "BAlloc failed");
 		goto fail5;
 	}
@@ -621,6 +635,7 @@ fail1:
 fail0:
 	DebugObjectGlobal_Finish();
 }
+#endif // BADVPN_USE_WINSOCK_AS_TUN_DEVICE
 
 void terminate (void)
 {
@@ -1360,7 +1375,7 @@ err_t common_netif_output (struct netif *netif, struct pbuf *p)
     
     // if there is just one chunk, send it directly, else via buffer
     if (!p->next) {
-        if (p->len > BTap_GetMTU(&device)) {
+        if (p->len > device_mtu) {
             BLog(BLOG_WARNING, "netif func output: no space left");
             goto out;
         }
@@ -1992,7 +2007,7 @@ void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote
             BLog(BLOG_INFO, "UDP: from udpgw %d bytes", data_len);
             
             if (data_len > UINT16_MAX - (sizeof(struct ipv4_header) + sizeof(struct udp_header)) ||
-                data_len > BTap_GetMTU(&device) - (int)(sizeof(struct ipv4_header) + sizeof(struct udp_header))
+                data_len > device_mtu - (int)(sizeof(struct ipv4_header) + sizeof(struct udp_header))
             ) {
                 BLog(BLOG_ERROR, "UDP: packet is too large");
                 return;
@@ -2036,7 +2051,7 @@ void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote
             }
             
             if (data_len > UINT16_MAX - sizeof(struct udp_header) ||
-                data_len > BTap_GetMTU(&device) - (int)(sizeof(struct ipv6_header) + sizeof(struct udp_header))
+                data_len > device_mtu - (int)(sizeof(struct ipv6_header) + sizeof(struct udp_header))
             ) {
                 BLog(BLOG_ERROR, "UDP/IPv6: packet is too large");
                 return;

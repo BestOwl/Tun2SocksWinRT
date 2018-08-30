@@ -44,3 +44,7 @@
 
 // option to override the destination addresses to give the SOCKS server
 //#define OVERRIDE_DEST_ADDR "10.111.0.2:2000"
+
+#ifdef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+int tun2sock_init(char* tun_service_name, int mtu);
+#endif // BADVPN_USE_WINSOCK_AS_TUN_DEVICE
