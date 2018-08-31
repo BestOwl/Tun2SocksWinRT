@@ -55,14 +55,9 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 	int iResult;
 
 	SOCKET ListenSocket = INVALID_SOCKET;
-	SOCKET ClientSocket = INVALID_SOCKET;
 
 	struct addrinfo *result = NULL;
 	struct addrinfo hints;
-
-	int iSendResult;
-	char recvbuf[512];
-	int recvbuflen = 512;
 
 	// Initialize Winsock
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -128,16 +123,42 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 
 	// init recv olap
 	BReactorIOCPOverlapped_Init(&obj->recv_olap, obj->reactor, obj, (BReactorIOCPOverlapped_handler)recv_olap_handler);
+
+	// init output
+	PacketRecvInterface_Init(&obj->output, obj->mtu, (PacketRecvInterface_handler_recv)output_handler_recv, obj, BReactor_PendingGroup(obj->reactor));
+
+	// set no output packet
+	obj->output_packet = NULL;
+}
+
+void output_handler_recv(SockTun *obj, uint8_t *data)
+{
+	DebugObject_Access(&obj->d_obj);
+	DebugError_AssertNoError(&obj->d_err);
+	ASSERT(data)
+	ASSERT(!obj->output_packet)
+
+	memset(&obj->recv_olap.olap, 0, sizeof(o->recv_olap.olap));
+
+	// read
+	BOOL res = ReadFile(obj->device, data, obj->mtu, NULL, &o->recv_olap.olap);
+	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
+		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
+		report_error(o);
+		return;
+	}
+
+	o->output_packet = data;
 }
 
 static void recv_olap_handler(SockTun *obj, int event, DWORD bytes)
 {
 	DebugObject_Access(&obj->d_obj);
 	ASSERT(obj->output_packet)
-		ASSERT(event == BREACTOR_IOCP_EVENT_SUCCEEDED || event == BREACTOR_IOCP_EVENT_FAILED)
+	ASSERT(event == BREACTOR_IOCP_EVENT_SUCCEEDED || event == BREACTOR_IOCP_EVENT_FAILED)
 
-		// set no output packet
-		obj->output_packet = NULL;
+	// set no output packet
+	obj->output_packet = NULL;
 
 	if (event == BREACTOR_IOCP_EVENT_FAILED) {
 		BLog(BLOG_ERROR, "read operation failed");
@@ -146,10 +167,10 @@ static void recv_olap_handler(SockTun *obj, int event, DWORD bytes)
 	}
 
 	ASSERT(bytes >= 0)
-		ASSERT(bytes <= obj->mtu)
+	ASSERT(bytes <= obj->mtu)
 
-		// done
-		PacketRecvInterface_Done(&obj->output, bytes);
+	// done
+	PacketRecvInterface_Done(&obj->output, bytes);
 }
 
 int winsock_init(char* tun_service_name, int mtu)
