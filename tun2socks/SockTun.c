@@ -179,7 +179,41 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 
 void SockTun_Send(SockTun *obj, uint8_t *data, int data_len) 
 {
-	printf("pusedo-Sennding back to tunnel");
+	DebugObject_Access(&obj->d_obj);
+	DebugError_AssertNoError(&obj->d_err);
+	ASSERT(data_len >= 0)
+	ASSERT(data_len <= obj->mtu)
+
+	// ignore frames without an Ethernet header, or we get errors in WriteFile
+	if (data_len < 14) {
+		return;
+	}
+
+	memset(&obj->send_olap.olap, 0, sizeof(obj->send_olap.olap));
+
+	// write
+	BOOL res = WriteFile(obj->device, data, data_len, NULL, &obj->send_olap.olap);
+	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
+		BLog(BLOG_ERROR, "WriteFile failed (%u)", GetLastError());
+		return;
+	}
+
+	// wait
+	int succeeded;
+	DWORD bytes;
+	BReactorIOCPOverlapped_Wait(&obj->send_olap, &succeeded, &bytes);
+
+	if (!succeeded) {
+		BLog(BLOG_ERROR, "write operation failed");
+	}
+	else {
+		ASSERT(bytes >= 0)
+		ASSERT(bytes <= data_len)
+
+		if (bytes < data_len) {
+			BLog(BLOG_ERROR, "write operation didn't write everything");
+		}
+	}
 }
 
 int SockTun_GetMTU(SockTun *obj)
