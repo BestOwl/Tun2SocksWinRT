@@ -44,111 +44,9 @@
 
 #include <tun2socks/socktun.h>
 
-int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
+void report_error(SockTun *obj)
 {
-	// Init arguments
-	obj->reactor = reactor;
-	obj->handler_error = handler_error;
-	obj->handler_error_user = handler_error_user;
-
-	WSADATA wsaData;
-	int iResult;
-
-	SOCKET ListenSocket = INVALID_SOCKET;
-
-	struct addrinfo *result = NULL;
-	struct addrinfo hints;
-
-	// Initialize Winsock
-	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iResult != 0) {
-		BLog(BLOG_ERROR, "WSAStartup failed with error: %d\n", iResult);
-		return 0;
-	}
-
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
-
-	// Resolve the server address and port
-	iResult = getaddrinfo(NULL, (PCSTR)tun_service_name, &hints, &result);
-	if (iResult != 0) {
-		BLog(BLOG_ERROR, "getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
-		return 0;
-	}
-
-	// Create a SOCKET for connecting to server
-	ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	if (ListenSocket == INVALID_SOCKET) {
-		BLog(BLOG_ERROR, "Socket failed with error: %ld\n", WSAGetLastError());
-		freeaddrinfo(result);
-		WSACleanup();
-		return 0;
-	}
-
-	// Setup the TCP listening socket
-	iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
-	if (iResult == SOCKET_ERROR) {
-		BLog(BLOG_ERROR, "Bind failed with error: %d\n", WSAGetLastError());
-		freeaddrinfo(result);
-		closesocket(ListenSocket);
-		WSACleanup();
-		return 0;
-	}
-
-	freeaddrinfo(result);
-
-	iResult = listen(ListenSocket, SOMAXCONN);
-	if (iResult == SOCKET_ERROR) {
-		printf("Listen failed with error: %d\n", WSAGetLastError());
-		closesocket(ListenSocket);
-		WSACleanup();
-		return 0;
-	}
-
-	BLog(BLOG_INFO, "Socket listening on %s", tun_service_name);
-
-	// Associate socket with IOCP
-	if (!CreateIoCompletionPort((HANDLE)ListenSocket, BReactor_GetIOCPHandle(reactor), 0, 0)) {
-		BLog(BLOG_ERROR, "CreateIoCompletionPort failed");
-		CloseHandle((HANDLE)ListenSocket);
-		return 0;
-	}
-
-	// init send olap
-	BReactorIOCPOverlapped_Init(&obj->send_olap, reactor, obj, NULL);
-
-	// init recv olap
-	BReactorIOCPOverlapped_Init(&obj->recv_olap, obj->reactor, obj, (BReactorIOCPOverlapped_handler)recv_olap_handler);
-
-	// init output
-	PacketRecvInterface_Init(&obj->output, obj->mtu, (PacketRecvInterface_handler_recv)output_handler_recv, obj, BReactor_PendingGroup(obj->reactor));
-
-	// set no output packet
-	obj->output_packet = NULL;
-}
-
-void output_handler_recv(SockTun *obj, uint8_t *data)
-{
-	DebugObject_Access(&obj->d_obj);
-	DebugError_AssertNoError(&obj->d_err);
-	ASSERT(data)
-	ASSERT(!obj->output_packet)
-
-	memset(&obj->recv_olap.olap, 0, sizeof(o->recv_olap.olap));
-
-	// read
-	BOOL res = ReadFile(obj->device, data, obj->mtu, NULL, &o->recv_olap.olap);
-	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
-		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
-		report_error(o);
-		return;
-	}
-
-	o->output_packet = data;
+	DEBUGERROR(&obj->d_err, obj->handler_error(obj->handler_error_user));
 }
 
 static void recv_olap_handler(SockTun *obj, int event, DWORD bytes)
@@ -171,6 +69,130 @@ static void recv_olap_handler(SockTun *obj, int event, DWORD bytes)
 
 	// done
 	PacketRecvInterface_Done(&obj->output, bytes);
+}
+
+void output_handler_recv(SockTun *obj, uint8_t *data)
+{
+	DebugObject_Access(&obj->d_obj);
+	DebugError_AssertNoError(&obj->d_err);
+	ASSERT(data)
+	ASSERT(!obj->output_packet)
+
+	memset(&obj->recv_olap.olap, 0, sizeof(obj->recv_olap.olap));
+
+	// read
+	//BOOL res = WSARecv((SOCKET)obj->device, data, 1, obj->mtu, NULL, &obj->recv_olap.olap, NULL);
+	BOOL res = ReadFile(obj->device, data, obj->mtu, NULL, &obj->recv_olap.olap);
+	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
+		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
+		report_error(obj);
+		return;
+	}
+
+	obj->output_packet = data;
+}
+
+int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
+{
+	// Init arguments
+	obj->mtu = mtu;
+	obj->reactor = reactor;
+	obj->handler_error = handler_error;
+	obj->handler_error_user = handler_error_user;
+
+	WSADATA wsaData;
+	int iResult;
+
+	SOCKET BSocket = INVALID_SOCKET;
+
+	struct addrinfo *result = NULL;
+	struct addrinfo hints;
+
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		BLog(BLOG_ERROR, "WSAStartup failed with error: %d\n", iResult);
+		return 0;
+	}
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+	hints.ai_flags = AI_PASSIVE;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(NULL, (PCSTR)tun_service_name, &hints, &result);
+	if (iResult != 0) {
+		BLog(BLOG_ERROR, "getaddrinfo failed with error: %d\n", iResult);
+		WSACleanup();
+		return 0;
+	}
+
+	// Create a SOCKET for connecting to server
+	BSocket = WSASocket(result->ai_family, result->ai_socktype, result->ai_protocol, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (BSocket == INVALID_SOCKET) {
+		BLog(BLOG_ERROR, "Socket failed with error: %ld\n", WSAGetLastError());
+		freeaddrinfo(result);
+		WSACleanup();
+		return 0;
+	}
+
+	// Setup the UDP listening socket
+	iResult = bind(BSocket, result->ai_addr, (int)result->ai_addrlen);
+	if (iResult == SOCKET_ERROR) {
+		BLog(BLOG_ERROR, "Bind failed with error: %d\n", WSAGetLastError());
+		freeaddrinfo(result);
+		closesocket(BSocket);
+		WSACleanup();
+		return 0;
+	}
+
+	freeaddrinfo(result);
+
+	BLog(BLOG_INFO, "UDP socket binded to %s", tun_service_name);
+
+	obj->device = (HANDLE)BSocket;
+
+	// Associate socket with IOCP
+	if (!CreateIoCompletionPort((HANDLE)BSocket, BReactor_GetIOCPHandle(reactor), 0, 0)) {
+		BLog(BLOG_ERROR, "CreateIoCompletionPort failed");
+		CloseHandle((HANDLE)BSocket);
+		return 0;
+	}
+
+	// init send olap
+	BReactorIOCPOverlapped_Init(&obj->send_olap, reactor, obj, NULL);
+
+	// init recv olap
+	BReactorIOCPOverlapped_Init(&obj->recv_olap, obj->reactor, obj, (BReactorIOCPOverlapped_handler)recv_olap_handler);
+
+	// init output
+	PacketRecvInterface_Init(&obj->output, obj->mtu, (PacketRecvInterface_handler_recv)output_handler_recv, obj, BReactor_PendingGroup(obj->reactor));
+
+	// set no output packet
+	obj->output_packet = NULL;
+
+	DebugError_Init(&obj->d_err, BReactor_PendingGroup(obj->reactor));
+	DebugObject_Init(&obj->d_obj);
+}
+
+void SockTun_Send(SockTun *obj, uint8_t *data, int data_len) 
+{
+	printf("pusedo-Sennding back to tunnel");
+}
+
+int SockTun_GetMTU(SockTun *obj)
+{
+	DebugObject_Access(&obj->d_obj);
+	return obj->mtu;
+}
+
+PacketRecvInterface * SockTun_GetOutput(SockTun *obj)
+{
+	DebugObject_Access(&obj->d_obj);
+
+	return &obj->output;
 }
 
 int winsock_init(char* tun_service_name, int mtu)
@@ -241,17 +263,17 @@ int winsock_init(char* tun_service_name, int mtu)
 	BLog(BLOG_INFO, "Socket listening on %s", tun_service_name);
 
 	// Associate socket with IOCP
-	if (!CreateIoCompletionPort((HANDLE)ListenSocket, BReactor_GetIOCPHandle(ss), 0, 0)) {
+	/*if (!CreateIoCompletionPort((HANDLE)ListenSocket, BReactor_GetIOCPHandle(ss), 0, 0)) {
 		BLog(BLOG_ERROR, "CreateIoCompletionPort failed");
 		CloseHandle((HANDLE)ListenSocket);
 		return 0;
-	}
+	}*/
 
 	// init send olap
-	BReactorIOCPOverlapped_Init(send_olap, ss, o, NULL);
+	//BReactorIOCPOverlapped_Init(send_olap, ss, o, NULL);
 
 	// init recv olap
-	BReactorIOCPOverlapped_Init(&o->recv_olap, o->reactor, o, (BReactorIOCPOverlapped_handler)recv_olap_handler);
+	//BReactorIOCPOverlapped_Init(&o->recv_olap, o->reactor, o, (BReactorIOCPOverlapped_handler)recv_olap_handler);
 
 
 	// Accept a client socket

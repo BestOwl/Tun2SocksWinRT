@@ -78,4 +78,29 @@ typedef struct {
  */
 int SockTun_Init(SockTun *obj, BReactor *ss, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user);
 
-int winsock_init(char* tun_service_name, int mtu);
+/**
+* Sends a packet to the device.
+* Any errors will be reported via a job.
+*
+* @param o the object
+* @param data packet to send
+* @param data_len length of packet. Must be >=0 and <=MTU, as reported by {@link BTap_GetMTU}.
+*/
+void SockTun_Send(SockTun *obj, uint8_t *data, int data_len);
+
+/**
+* Returns the device's maximum transmission unit (including any protocol headers).
+*
+* @param o the object
+* @return device's MTU
+*/
+int SockTun_GetMTU(SockTun *o);
+
+/**
+* Returns a {@link PacketRecvInterface} for reading packets from the device.
+* The MTU of the interface will be {@link BTap_GetMTU}.
+*
+* @param o the object
+* @return output interface
+*/
+PacketRecvInterface * SockTun_GetOutput(SockTun *o);

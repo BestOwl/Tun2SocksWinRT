@@ -178,13 +178,8 @@ int quitting;
 BTap device;
 #define device_mtu BTap_GetMTU(&device)
 #else
-BTap device;
-int device_mtu_t;
-#define device_mtu device_mtu_t
-
-HANDLE tunnel;
-BReactorIOCPOverlapped send_olap;
-BReactorIOCPOverlapped recv_olap;
+SockTun tunnel;
+#define device_mtu SockTun_GetMTU(&tunnel)
 #endif
 
 // device write buffer
@@ -228,7 +223,8 @@ static int parse_arguments (int argc, char *argv[]);
 static int process_arguments (void);
 static void signal_handler (void *unused);
 static BAddr baddr_from_lwip (const ip_addr_t *ip_addr, uint16_t port_hostorder);
-static void lwip_init_job_hadler (void *unused);
+static void lwip_init_job_hadler(void *unused);
+static void lwip_init_job_hadler_socktun(void *unused);
 static void tcp_timer_handler (void *unused);
 static void device_error_handler (void *unused);
 static void device_read_handler_send (void *unused, uint8_t *data, int data_len);
@@ -476,36 +472,17 @@ fail0:
     return 1;
 }
 #else
-static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
+void tun2socks_Init(char *tun_service_name, int mtu)
 {
 	// open standard streams
 	open_standard_streams();
 
 	// initialize logger
-	switch (options.logger) {
-	case LOGGER_STDOUT:
-		BLog_InitStdout();
-		break;
-#ifndef BADVPN_USE_WINAPI
-	case LOGGER_SYSLOG:
-		if (!BLog_InitSyslog(options.logger_syslog_ident, options.logger_syslog_facility)) {
-			fprintf(stderr, "Failed to initialize syslog logger\n");
-			goto fail0;
-		}
-		break;
-#endif
-	default:
-		ASSERT(0);
-	}
+	BLog_InitStdout();
 
 	// configure logger channels
 	for (int i = 0; i < BLOG_NUM_CHANNELS; i++) {
-		if (options.loglevels[i] >= 0) {
-			BLog_SetChannelLoglevel(i, options.loglevels[i]);
-		}
-		else if (options.loglevel >= 0) {
-			BLog_SetChannelLoglevel(i, options.loglevel);
-		}
+		BLog_SetChannelLoglevel(i, BLOG_DEBUG);
 	}
 
 	BLog(BLOG_NOTICE, "initializing "GLOBAL_PRODUCT_NAME" "PROGRAM_NAME" "GLOBAL_VERSION);
@@ -538,7 +515,7 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 	}
 
 	// init winsock as a tun device
-	winsock_init(tun_service_name, mtu);
+	SockTun_Init(&tunnel, &ss, tun_service_name, mtu, device_error_handler, NULL);
 
 	// NOTE: the order of the following is important:
 	// first device writing must evaluate,
@@ -547,7 +524,7 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 
 	// init device reading
 	PacketPassInterface_Init(&device_read_interface, mtu, device_read_handler_send, NULL, BReactor_PendingGroup(&ss));
-	if (!SinglePacketBuffer_Init(&device_read_buffer, mtu, &device_read_interface, BReactor_PendingGroup(&ss))) {
+	if (!SinglePacketBuffer_Init(&device_read_buffer, SockTun_GetOutput(&tunnel), &device_read_interface, BReactor_PendingGroup(&ss))) {
 		BLog(BLOG_ERROR, "SinglePacketBuffer_Init failed");
 		goto fail4;
 	}
@@ -583,7 +560,11 @@ static void tun2socks_Init(PacketRecvInterface *tunnelInput, int MTU)
 	}
 
 	// init lwip init job
+#ifdef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+	BPending_Init(&lwip_init_job, BReactor_PendingGroup(&ss), lwip_init_job_hadler_socktun, NULL);
+#else
 	BPending_Init(&lwip_init_job, BReactor_PendingGroup(&ss), lwip_init_job_hadler, NULL);
+#endif
 	BPending_Set(&lwip_init_job);
 
 	// init device write buffer
@@ -1142,6 +1123,77 @@ fail:
     }
 }
 
+void lwip_init_job_hadler_socktun(void *unused)
+{
+	ASSERT(!quitting)
+	ASSERT(!listener)
+	ASSERT(!listener_ip6)
+
+	BLog(BLOG_DEBUG, "lwip init");
+
+	// NOTE: the device may fail during this, but there's no harm in not checking
+	// for that at every step
+
+	// init lwip
+	lwip_init();
+
+	// make addresses for netif
+	BIPAddr loop_ipaddr, loop_netmask, loop_gw;
+	BIPAddr_Resolve(&loop_ipaddr, "127.0.0.1", 0);
+	BIPAddr_Resolve(&loop_ipaddr, "127.0.0.1", 0);
+	BIPAddr_Resolve(&loop_netmask, "255.0.0.0", 0);
+
+	// init netif
+	if (!netif_add(&the_netif, &loop_ipaddr.ipv4, &loop_netmask.ipv4, &loop_gw.ipv4, NULL, netif_init_func, netif_input_func)) {
+		BLog(BLOG_ERROR, "netif_add failed");
+		goto fail;
+	}
+	have_netif = 1;
+
+	// set netif up
+	netif_set_up(&the_netif);
+
+	// set netif link up, otherwise ip route will refuse to route
+	netif_set_link_up(&the_netif);
+
+	// set netif pretend TCP
+	netif_set_pretend_tcp(&the_netif, 1);
+
+	// set netif default
+	netif_set_default(&the_netif);
+
+	// init listener
+	struct tcp_pcb *l = tcp_new();
+	if (!l) {
+		BLog(BLOG_ERROR, "tcp_new");
+		goto fail;
+	}
+
+	if (tcp_bind(l, IP4_ADDR_ANY, 0) != ERR_OK)
+	{
+		BLog(BLOG_ERROR, "tcp_bind_to_netif failed");
+		tcp_close(l);
+		goto fail;
+	}
+
+	// listen listener
+	if (!(listener = tcp_listen(l))) {
+		BLog(BLOG_ERROR, "tcp_listen failed");
+		tcp_close(l);
+		goto fail;
+	}
+
+	// setup listener accept handler
+	tcp_accept(listener, listener_accept_func);
+
+	return;
+
+fail:
+	if (!quitting) {
+		terminate();
+	}
+}
+
 void tcp_timer_handler (void *unused)
 {
     ASSERT(!quitting)
@@ -1380,13 +1432,17 @@ err_t common_netif_output (struct netif *netif, struct pbuf *p)
             goto out;
         }
         
-        SYNC_FROMHERE
-        BTap_Send(&device, (uint8_t *)p->payload, p->len);
+		SYNC_FROMHERE
+#ifdef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+		SockTun_Send(&tunnel, (uint8_t *)p->payload, p->len);
+#else
+		BTap_Send(&device, (uint8_t *)p->payload, p->len);
+#endif // BADVPN_USE_WINSOCK_AS_TUN_DEVICE
         SYNC_COMMIT
     } else {
         int len = 0;
         do {
-            if (p->len > BTap_GetMTU(&device) - len) {
+            if (p->len > device_mtu - len) {
                 BLog(BLOG_WARNING, "netif func output: no space left");
                 goto out;
             }
@@ -1394,8 +1450,12 @@ err_t common_netif_output (struct netif *netif, struct pbuf *p)
             len += p->len;
         } while (p = p->next);
         
-        SYNC_FROMHERE
-        BTap_Send(&device, device_write_buf, len);
+		SYNC_FROMHERE
+#if BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+		SockTun_Send(&tunnel, device_write_buf, len);
+#else
+		BTap_Send(&device, device_write_buf, len);
+#endif // BADVPN_USE_WINSOCK_AS_TUN_DEVICE
         SYNC_COMMIT
     }
     
@@ -2085,5 +2145,9 @@ void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote
     }
     
     // submit packet
+#ifdef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
+	SockTun_Send(&tunnel, device_write_buf, packet_length);
+#else
     BTap_Send(&device, device_write_buf, packet_length);
+#endif
 }
