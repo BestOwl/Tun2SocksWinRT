@@ -223,6 +223,7 @@ static int parse_arguments (int argc, char *argv[]);
 static int process_arguments (void);
 static void signal_handler (void *unused);
 static BAddr baddr_from_lwip (const ip_addr_t *ip_addr, uint16_t port_hostorder);
+static int init_socks_server_authentication(char *server_address, char *password);
 static void lwip_init_job_hadler(void *unused);
 static void lwip_init_job_hadler_socktun(void *unused);
 static void tcp_timer_handler (void *unused);
@@ -472,7 +473,7 @@ fail0:
     return 1;
 }
 #else
-void tun2socks_Init(char *tun_service_name, int mtu)
+void tun2socks_Init(char *tun_service_name, int mtu, char *socks_server_address, char *socks_server_password)
 {
 	// open standard streams
 	open_standard_streams();
@@ -494,6 +495,13 @@ void tun2socks_Init(char *tun_service_name, int mtu)
 	if (!BNetwork_GlobalInit()) {
 		BLog(BLOG_ERROR, "BNetwork_GlobalInit failed");
 		goto fail1;
+	}
+
+	// initialize socks server authentication
+	if (!init_socks_server_authentication(socks_server_address, socks_server_password))
+	{
+		BLog(ERROR, "Could not resovle remote socks server address");
+		return;
 	}
 
 	// init time
@@ -1009,6 +1017,26 @@ BAddr baddr_from_lwip (const ip_addr_t *ip_addr, uint16_t port_hostorder)
         BAddr_InitIPv4(&addr, ip_addr->u_addr.ip4.addr, hton16(port_hostorder));
     }
     return addr;
+}
+
+int init_socks_server_authentication(char *server_address, char *password)
+{
+	// resolve SOCKS server address
+	if (!BAddr_Parse2(&socks_server_addr, server_address, NULL, 0, 0)) {
+		BLog(BLOG_ERROR, "socks server addr: BAddr_Parse2 failed");
+		return 0;
+	}
+
+	// add none socks authentication method
+	socks_auth_info[0] = BSocksClient_auth_none();
+	socks_num_auth_info = 1;
+
+	//size_t password_len = strlen(options.password);
+
+	//socks_auth_info[socks_num_auth_info++] = BSocksClient_auth_password(
+	//	"", 0, password, password_len);
+
+	return 1;
 }
 
 void lwip_init_job_hadler (void *unused)
