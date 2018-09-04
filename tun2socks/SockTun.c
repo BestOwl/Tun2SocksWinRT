@@ -81,7 +81,7 @@ void output_handler_recv(SockTun *obj, uint8_t *data)
 	memset(&obj->recv_olap.olap, 0, sizeof(obj->recv_olap.olap));
 
 	// read
-	//BOOL res = WSARecv((SOCKET)obj->device, data, 1, obj->mtu, NULL, &obj->recv_olap.olap, NULL);
+	//BOOL res = WSARecv(obj->device, data, 1, obj->mtu, NULL, &obj->recv_olap.olap, NULL);
 	BOOL res = ReadFile(obj->device, data, obj->mtu, NULL, &obj->recv_olap.olap);
 	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
 		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
@@ -90,9 +90,10 @@ void output_handler_recv(SockTun *obj, uint8_t *data)
 	}
 
 	obj->output_packet = data;
+	printf(data);
 }
 
-int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
+int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, char *tun_output_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
 {
 	// Init arguments
 	obj->mtu = mtu;
@@ -103,7 +104,7 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 	WSADATA wsaData;
 	int iResult;
 
-	SOCKET BSocket = INVALID_SOCKET;
+	SOCKET SSocket = INVALID_SOCKET;
 
 	struct addrinfo *result = NULL;
 	struct addrinfo hints;
@@ -129,9 +130,9 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 		return 0;
 	}
 
-	// Create a SOCKET for connecting to server
-	BSocket = WSASocket(result->ai_family, result->ai_socktype, result->ai_protocol, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (BSocket == INVALID_SOCKET) {
+	// Create a SOCKET for server
+	SSocket = WSASocket(result->ai_family, result->ai_socktype, result->ai_protocol, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (SSocket == INVALID_SOCKET) {
 		BLog(BLOG_ERROR, "Socket failed with error: %ld\n", WSAGetLastError());
 		freeaddrinfo(result);
 		WSACleanup();
@@ -139,25 +140,39 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 	}
 
 	// Setup the UDP listening socket
-	iResult = bind(BSocket, result->ai_addr, (int)result->ai_addrlen);
+	iResult = bind(SSocket, result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR) {
 		BLog(BLOG_ERROR, "Bind failed with error: %d\n", WSAGetLastError());
 		freeaddrinfo(result);
-		closesocket(BSocket);
+		closesocket(SSocket);
 		WSACleanup();
 		return 0;
 	}
+
+	// Init tunnel output address
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+	hints.ai_flags = AI_PASSIVE;
+	iResult = getaddrinfo((PCSTR)"127.0.0.1", (PCSTR)tun_output_service_name, &hints, &result);
+	if (iResult != 0) {
+		BLog(BLOG_ERROR, "getaddrinfo failed with error: %d\n", iResult);
+		WSACleanup();
+		return 0;
+	}
+	obj->output_addr = *result->ai_addr;
 
 	freeaddrinfo(result);
 
 	BLog(BLOG_INFO, "UDP socket binded to %s", tun_service_name);
 
-	obj->device = (HANDLE)BSocket;
+	obj->device = SSocket;
 
 	// Associate socket with IOCP
-	if (!CreateIoCompletionPort((HANDLE)BSocket, BReactor_GetIOCPHandle(reactor), 0, 0)) {
+	if (!CreateIoCompletionPort((HANDLE)SSocket, BReactor_GetIOCPHandle(reactor), 0, 0)) {
 		BLog(BLOG_ERROR, "CreateIoCompletionPort failed");
-		CloseHandle((HANDLE)BSocket);
+		CloseHandle((HANDLE)SSocket);
 		return 0;
 	}
 
@@ -192,7 +207,14 @@ void SockTun_Send(SockTun *obj, uint8_t *data, int data_len)
 	memset(&obj->send_olap.olap, 0, sizeof(obj->send_olap.olap));
 
 	// write
-	BOOL res = WriteFile(obj->device, data, data_len, NULL, &obj->send_olap.olap);
+	BOOL res = WSASendTo(
+		(SOCKET)obj->device, data, 
+		1, data_len, NULL, &obj->output_addr,
+		sizeof(struct sockaddr), &obj->send_olap.olap, 
+		NULL);
+
+	//BOOL res = WSASend((SOCKET)obj->device, data, 1, NULL, NULL, &obj->send_olap.olap, NULL);
+	//BOOL res = WriteFile((HANDLE)obj->device, data, data_len, NULL, &obj->send_olap.olap);
 	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
 		BLog(BLOG_ERROR, "WriteFile failed (%u)", GetLastError());
 		return;

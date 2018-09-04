@@ -257,7 +257,7 @@ static err_t client_sent_func (void *arg, struct tcp_pcb *tpcb, u16_t len);
 static void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote_addr, const uint8_t *data, int data_len);
 
 #ifndef BADVPN_USE_WINSOCK_AS_TUN_DEVICE
-int main (int argc, char **argv)
+int main_t (int argc, char **argv)
 {
     if (argc <= 0) {
         return 1;
@@ -473,7 +473,7 @@ fail0:
     return 1;
 }
 #else
-void tun2socks_Init(char *tun_service_name, int mtu, char *socks_server_address, char *socks_server_password)
+void tun2socks_Init(char *tun_service_name, char *tun_output_server_name, int mtu, char *socks_server_address, char *socks_server_password)
 {
 	// open standard streams
 	open_standard_streams();
@@ -523,7 +523,7 @@ void tun2socks_Init(char *tun_service_name, int mtu, char *socks_server_address,
 	}
 
 	// init winsock as a tun device
-	SockTun_Init(&tunnel, &ss, tun_service_name, mtu, device_error_handler, NULL);
+	SockTun_Init(&tunnel, &ss, tun_service_name, tun_output_server_name, mtu, device_error_handler, NULL);
 
 	// NOTE: the order of the following is important:
 	// first device writing must evaluate,
