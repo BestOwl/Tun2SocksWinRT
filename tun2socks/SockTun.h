@@ -52,9 +52,15 @@ typedef struct {
 
 #ifdef BADVPN_USE_WINAPI
 	SOCKET device;
-	struct sockaddr output_addr;
+	struct sockaddr_in output_addr;
 	BReactorIOCPOverlapped send_olap;
 	BReactorIOCPOverlapped recv_olap;
+
+	int output_addr_size;
+	WSABUF wsa_buf;
+	DWORD wsa_flags;
+	DWORD wsa_bytes_recv;
+	DWORD wsa_bytes_sent;
 #else
 	int close_fd;
 	int fd;

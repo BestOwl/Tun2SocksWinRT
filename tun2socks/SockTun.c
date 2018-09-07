@@ -79,18 +79,24 @@ void output_handler_recv(SockTun *obj, uint8_t *data)
 	ASSERT(!obj->output_packet)
 
 	memset(&obj->recv_olap.olap, 0, sizeof(obj->recv_olap.olap));
+	memset(&obj->wsa_buf, 0, sizeof(obj->wsa_buf));
 
 	// read
-	//BOOL res = WSARecv(obj->device, data, 1, obj->mtu, NULL, &obj->recv_olap.olap, NULL);
-	BOOL res = ReadFile(obj->device, data, obj->mtu, NULL, &obj->recv_olap.olap);
-	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
+	obj->wsa_buf.buf = data;
+	obj->wsa_buf.len = obj->mtu;
+	BOOL res = WSARecvFrom(obj->device, &obj->wsa_buf, 
+		1, &obj->wsa_bytes_recv, 
+		&obj->wsa_flags, (SOCKADDR *) &obj->output_addr, 
+		&obj->output_addr_size, &obj->recv_olap.olap, 
+		NULL);
+	int err0 = GetLastError();
+	if (res != 0 && err0 != ERROR_IO_PENDING) {
 		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
 		report_error(obj);
 		return;
 	}
 
-	obj->output_packet = data;
-	printf(data);
+	obj->output_packet = obj->wsa_buf.buf;
 }
 
 int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, char *tun_output_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
@@ -150,31 +156,20 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, char *
 	}
 
 	// Init tunnel output address
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = IPPROTO_UDP;
-	hints.ai_flags = AI_PASSIVE;
-	iResult = getaddrinfo((PCSTR)"127.0.0.1", (PCSTR)tun_output_service_name, &hints, &result);
-	if (iResult != 0) {
-		BLog(BLOG_ERROR, "getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
-		return 0;
-	}
-	obj->output_addr = *result->ai_addr;
+	obj->output_addr_size = sizeof(obj->output_addr);
 
 	freeaddrinfo(result);
 
 	BLog(BLOG_INFO, "UDP socket binded to %s", tun_service_name);
-
-	obj->device = SSocket;
-
+	
 	// Associate socket with IOCP
 	if (!CreateIoCompletionPort((HANDLE)SSocket, BReactor_GetIOCPHandle(reactor), 0, 0)) {
 		BLog(BLOG_ERROR, "CreateIoCompletionPort failed");
 		CloseHandle((HANDLE)SSocket);
 		return 0;
 	}
+
+	obj->device = SSocket;
 
 	// init send olap
 	BReactorIOCPOverlapped_Init(&obj->send_olap, reactor, obj, NULL);
@@ -205,17 +200,19 @@ void SockTun_Send(SockTun *obj, uint8_t *data, int data_len)
 	}
 
 	memset(&obj->send_olap.olap, 0, sizeof(obj->send_olap.olap));
+	memset(&obj->wsa_buf, 0, sizeof(obj->wsa_buf));
 
 	// write
+	obj->wsa_buf.buf = data;
+	obj->wsa_buf.len = data_len;
 	BOOL res = WSASendTo(
-		(SOCKET)obj->device, data, 
-		1, data_len, NULL, &obj->output_addr,
-		sizeof(struct sockaddr), &obj->send_olap.olap, 
+		obj->device, &obj->wsa_buf,
+		1, &obj->wsa_bytes_sent,
+		obj->wsa_flags, (SOCKADDR *) &obj->output_addr,
+		obj->output_addr_size, &obj->send_olap.olap,
 		NULL);
-
-	//BOOL res = WSASend((SOCKET)obj->device, data, 1, NULL, NULL, &obj->send_olap.olap, NULL);
-	//BOOL res = WriteFile((HANDLE)obj->device, data, data_len, NULL, &obj->send_olap.olap);
-	if (res == FALSE && GetLastError() != ERROR_IO_PENDING) {
+	int err = GetLastError();
+	if (res != 0 && GetLastError() != ERROR_IO_PENDING) {
 		BLog(BLOG_ERROR, "WriteFile failed (%u)", GetLastError());
 		return;
 	}
