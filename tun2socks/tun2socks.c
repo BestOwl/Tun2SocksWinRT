@@ -473,7 +473,7 @@ fail0:
     return 1;
 }
 #else
-void tun2socks_Init(char *tun_service_name, char *tun_output_server_name, int mtu, char *socks_server_address, char *socks_server_password)
+void tun2socks_Init(char *tun_service_name, char  *vlan_addr, char *vlan_netmask, int mtu, char *socks_server_address, char *socks_server_password)
 {
 	// open standard streams
 	open_standard_streams();
@@ -495,6 +495,18 @@ void tun2socks_Init(char *tun_service_name, char *tun_output_server_name, int mt
 	if (!BNetwork_GlobalInit()) {
 		BLog(BLOG_ERROR, "BNetwork_GlobalInit failed");
 		goto fail1;
+	}
+
+	// resolve netif ipaddr
+	if (!BIPAddr_Resolve(&netif_ipaddr, vlan_addr, 0)) {
+		BLog(BLOG_ERROR, "netif ipaddr: BIPAddr_Resolve failed");
+		return 0;
+	}
+
+	// resolve netif netmask
+	if (!BIPAddr_Resolve(&netif_netmask, vlan_netmask, 0)) {
+		BLog(BLOG_ERROR, "netif netmask: BIPAddr_Resolve failed");
+		return 0;
 	}
 
 	// initialize socks server authentication
@@ -523,7 +535,7 @@ void tun2socks_Init(char *tun_service_name, char *tun_output_server_name, int mt
 	}
 
 	// init winsock as a tun device
-	SockTun_Init(&tunnel, &ss, tun_service_name, tun_output_server_name, mtu, device_error_handler, NULL);
+	SockTun_Init(&tunnel, &ss, tun_service_name, mtu, device_error_handler, NULL);
 
 	// NOTE: the order of the following is important:
 	// first device writing must evaluate,
@@ -1166,13 +1178,15 @@ void lwip_init_job_hadler_socktun(void *unused)
 	lwip_init();
 
 	// make addresses for netif
-	BIPAddr loop_ipaddr, loop_netmask, loop_gw;
-	BIPAddr_Resolve(&loop_ipaddr, "127.0.0.1", 0);
-	BIPAddr_Resolve(&loop_ipaddr, "127.0.0.1", 0);
-	BIPAddr_Resolve(&loop_netmask, "255.0.0.0", 0);
+	ip4_addr_t addr;
+	addr.addr = netif_ipaddr.ipv4;
+	ip4_addr_t netmask;
+	netmask.addr = netif_netmask.ipv4;
+	ip4_addr_t gw;
+	ip4_addr_set_any(&gw);
 
 	// init netif
-	if (!netif_add(&the_netif, &loop_ipaddr.ipv4, &loop_netmask.ipv4, &loop_gw.ipv4, NULL, netif_init_func, netif_input_func)) {
+	if (!netif_add(&the_netif, &addr, &netmask, &gw, NULL, netif_init_func, netif_input_func)) {
 		BLog(BLOG_ERROR, "netif_add failed");
 		goto fail;
 	}
@@ -1191,23 +1205,26 @@ void lwip_init_job_hadler_socktun(void *unused)
 	netif_set_default(&the_netif);
 
 	// init listener
-	struct tcp_pcb *l = tcp_new();
-	if (!l) {
-		BLog(BLOG_ERROR, "tcp_new");
+	struct tcp_pcb *pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
+	if (!pcb) {
+		BLog(BLOG_ERROR, "tcp_new_ip_type");
 		goto fail;
 	}
 
-	if (tcp_bind(l, IP4_ADDR_ANY, 0) != ERR_OK)
+	if (tcp_bind_to_netif(pcb, "ho0") != ERR_OK)
 	{
 		BLog(BLOG_ERROR, "tcp_bind_to_netif failed");
-		tcp_close(l);
+		tcp_close(pcb);
 		goto fail;
 	}
 
+	// ensure the listener only accepts connections from this netif
+	tcp_bind_netif(pcb, &the_netif);
+
 	// listen listener
-	if (!(listener = tcp_listen(l))) {
+	if (!(listener = tcp_listen(pcb))) {
 		BLog(BLOG_ERROR, "tcp_listen failed");
-		tcp_close(l);
+		tcp_close(pcb);
 		goto fail;
 	}
 

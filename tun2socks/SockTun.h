@@ -83,7 +83,7 @@ typedef struct {
  * @param handler_error error handler function
  * @param handler_error_user value passed to error handler
  */
-int SockTun_Init(SockTun *obj, BReactor *ss, char *tun_service_name, char *tun_output_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user);
+int SockTun_Init(SockTun *obj, BReactor *ss, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user);
 
 /**
 * Sends a packet to the device.

@@ -89,8 +89,7 @@ void output_handler_recv(SockTun *obj, uint8_t *data)
 		&obj->wsa_flags, (SOCKADDR *) &obj->output_addr, 
 		&obj->output_addr_size, &obj->recv_olap.olap, 
 		NULL);
-	int err0 = GetLastError();
-	if (res != 0 && err0 != ERROR_IO_PENDING) {
+	if (res != 0 && GetLastError() != ERROR_IO_PENDING) {
 		BLog(BLOG_ERROR, "ReadFile failed (%u)", GetLastError());
 		report_error(obj);
 		return;
@@ -99,7 +98,7 @@ void output_handler_recv(SockTun *obj, uint8_t *data)
 	obj->output_packet = obj->wsa_buf.buf;
 }
 
-int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, char *tun_output_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
+int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mtu, SockTun_handler_error handler_error, void *handler_error_user)
 {
 	// Init arguments
 	obj->mtu = mtu;
