@@ -36,15 +36,11 @@
           "value": "10.0.15063" // the "latest" version for Mobile
         },
         {
-          "name": "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS",
-          "value": "TRUE"
-        },
-        {
           "name": "BUILD_NOTHING_BY_DEFAULT",
           "value": "1"
         },
         {
-          "name": "BUILD_TUN2SOCKS",
+          "name": "BUILD_TUN2SOCKSWINRT",
           "value": "1"
         }
       ]

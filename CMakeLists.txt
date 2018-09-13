@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(BADVPN C)
+project(BADVPN)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
@@ -54,6 +54,7 @@ build_switch(SERVER "build badvpn-server" ${ON_IF_NOT_EMSCRIPTEN})
 build_switch(CLIENT "build badvpn-client" ${ON_IF_NOT_EMSCRIPTEN})
 build_switch(FLOODER "build badvpn-flooder" ${ON_IF_NOT_EMSCRIPTEN})
 build_switch(TUN2SOCKS "build badvpn-tun2socks" ${ON_IF_NOT_EMSCRIPTEN})
+build_switch(WINRT_TUN2SOCKS "build badvpn-tun2socks-winrt" ${ON_IF_NOT_EMSCRIPTEN})
 build_switch(UDPGW "build badvpn-udpgw" ${ON_IF_NOT_EMSCRIPTEN})
 build_switch(NCD "build badvpn-ncd" ${ON_IF_LINUX_OR_EMSCRIPTEN})
 build_switch(DOSTEST "build dostest-server and dostest-attacker" OFF)
@@ -328,11 +329,11 @@ if (BUILD_NCD AND NOT EMSCRIPTEN)
     add_subdirectory(arpprobe)
     add_subdirectory(random)
 endif ()
-if (BUILD_TUN2SOCKS)
+if (BUILD_TUN2SOCKS OR BUILD_TUN2SOCKSWINRT)
     add_subdirectory(socksclient)
     add_subdirectory(udpgw_client)
     add_subdirectory(lwip)
-	add_subdirectory(tuntest)
+    add_subdirectory(tun2socks)
 endif ()
 
 # example programs
@@ -362,8 +363,11 @@ endif ()
 
 # tun2socks
 if (BUILD_TUN2SOCKS)
-    add_subdirectory(tun2socks)
+	add_subdirectory(tuntest)
 endif ()
+if (BUILD_TUN2SOCKSWINRT)
+	add_subdirectory(tun2socks-winrt)
+endif()
 
 # udpgw
 if (BUILD_UDPGW)
