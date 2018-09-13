@@ -130,10 +130,10 @@ int BSignal_Init (BReactor *reactor, BSignal_handler handler, void *user)
     bsignal_global.iocp_handle = BReactor_GetIOCPHandle(bsignal_global.reactor);
     
     // configure ctrl handler
-    if (!SetConsoleCtrlHandler(ctrl_handler, TRUE)) {
+    /*if (!SetConsoleCtrlHandler(ctrl_handler, TRUE)) {
         BLog(BLOG_ERROR, "SetConsoleCtrlHandler failed");
         goto fail1;
-    }
+    }*/
     
     #else
     
