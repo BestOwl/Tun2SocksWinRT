@@ -456,7 +456,7 @@ void BIPAddr_Print (BIPAddr *addr, char *out)
             sprintf(out, "(none)");
             break;
         case BADDR_TYPE_IPV4:
-            sprintf(out, "%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8,
+            sprintf(out, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
                 *((uint8_t *)&addr->ipv4 + 0),
                 *((uint8_t *)&addr->ipv4 + 1),
                 *((uint8_t *)&addr->ipv4 + 2),
@@ -466,8 +466,8 @@ void BIPAddr_Print (BIPAddr *addr, char *out)
         case BADDR_TYPE_IPV6: {
             const char *ptr = (const char *)addr->ipv6;
             sprintf(out,
-                "%"PRIx16":%"PRIx16":%"PRIx16":%"PRIx16":"
-                "%"PRIx16":%"PRIx16":%"PRIx16":%"PRIx16,
+                "%" PRIx16 ":%" PRIx16 ":%" PRIx16 ":%" PRIx16 ":"
+                "%" PRIx16 ":%" PRIx16 ":%" PRIx16 ":%" PRIx16,
                 badvpn_read_be16(ptr + 0),
                 badvpn_read_be16(ptr + 2),
                 badvpn_read_be16(ptr + 4),
@@ -601,12 +601,12 @@ void BAddr_Print (BAddr *addr, char *out)
         case BADDR_TYPE_IPV4:
             BIPAddr_InitIPv4(&ipaddr, addr->ipv4.ip);
             BIPAddr_Print(&ipaddr, out);
-            sprintf(out + strlen(out), ":%"PRIu16, ntoh16(addr->ipv4.port));
+            sprintf(out + strlen(out), ":%" PRIu16, ntoh16(addr->ipv4.port));
             break;
         case BADDR_TYPE_IPV6:
             BIPAddr_InitIPv6(&ipaddr, addr->ipv6.ip);
             BIPAddr_Print(&ipaddr, out);
-            sprintf(out + strlen(out), ":%"PRIu16, ntoh16(addr->ipv6.port));
+            sprintf(out + strlen(out), ":%" PRIu16, ntoh16(addr->ipv6.port));
             break;
         #ifdef BADVPN_LINUX
         case BADDR_TYPE_PACKET:

@@ -31,8 +31,8 @@
 #pragma once
 
 extern "C" {
-#include <tun2socks/tun2socks.c>
-void tun2socks_Init(char *tun_service_name, char  *vlan_addr, char *vlan_netmask, int mtu, char *socks_server_addr, char *socks_server_password, _BLog_log_func log_func);
+#include <tun2socks/tun2socks.h>
+void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_addr, const char *socks_server_password);
 }
 
 namespace Tun2SocksWinRT 
@@ -42,7 +42,7 @@ namespace Tun2SocksWinRT
 		public:
 			void Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ socksServerPassword);
 
-		private:
-			static void stdlog(int channel, int level, const char *msg);
+		/*private:
+			static void stdlog(int channel, int level, const char *msg);*/
 	};
 }

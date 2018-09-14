@@ -31,27 +31,28 @@
 
 #include <cvt/wstring>
 #include <codecvt>
-#include <base/BLog.c>
+//#include <base/BLog.c>
 #include "tun2socks.h"
 
 namespace Tun2SocksWinRT 
 {
-	void Tun2Socks::stdlog(int channel, int level, const char *msg)
+	/*void Tun2Socks::stdlog(int channel, int level, const char *msg)
 	{
 		fprintf(stdout, "%s(%s): %s\n", level_names[level], blog_global.channels[channel].name, msg);
-	}
+	}*/
 
 	void Tun2Socks::Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ socksServerPassword)
 	{
 		// Cast String to char*
 		stdext::cvt::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		char* service_name = const_cast<char*>(converter.to_bytes(tunServiceName->Data()).c_str());
-		char* vlan_addr = const_cast<char*>(converter.to_bytes(vlanAddr->Data()).c_str());
-		char* vlan_netmask = const_cast<char*>(converter.to_bytes(vlanNetmask->Data()).c_str());
-		char* socks_addr = const_cast<char*>(converter.to_bytes(socksServerAddr->Data()).c_str());
-		char* socks_password = const_cast<char*>(converter.to_bytes(socksServerPassword->Data()).c_str());
 
-		tun2socks_Init(service_name, vlan_addr, vlan_netmask, mtu, socks_addr, socks_password, (_BLog_log_func) stdlog);
+		std::string service_name = converter.to_bytes(tunServiceName->Data());
+		std::string vlan_addr = converter.to_bytes(vlanAddr->Data());
+		std::string vlan_netmask = converter.to_bytes(vlanNetmask->Data());
+		std::string socks_addr = converter.to_bytes(socksServerAddr->Data());
+		std::string socks_password = converter.to_bytes(socksServerPassword->Data());
+
+		tun2socks_Init(service_name.c_str(), vlan_addr.c_str(), vlan_netmask.c_str(), mtu, socks_addr.c_str(), socks_password.c_str());
 	}
 }
 

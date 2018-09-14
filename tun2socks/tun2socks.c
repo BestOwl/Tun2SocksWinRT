@@ -473,7 +473,7 @@ fail0:
     return 1;
 }
 #else
-void tun2socks_Init(char *tun_service_name, char  *vlan_addr, char *vlan_netmask, int mtu, char *socks_server_address, char *socks_server_password)
+void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_address, const char *socks_server_password)
 {
 	// open standard streams
 	open_standard_streams();
@@ -500,13 +500,13 @@ void tun2socks_Init(char *tun_service_name, char  *vlan_addr, char *vlan_netmask
 	// resolve netif ipaddr
 	if (!BIPAddr_Resolve(&netif_ipaddr, vlan_addr, 0)) {
 		BLog(BLOG_ERROR, "netif ipaddr: BIPAddr_Resolve failed");
-		return 0;
+		return;
 	}
 
 	// resolve netif netmask
 	if (!BIPAddr_Resolve(&netif_netmask, vlan_netmask, 0)) {
 		BLog(BLOG_ERROR, "netif netmask: BIPAddr_Resolve failed");
-		return 0;
+		return;
 	}
 
 	// initialize socks server authentication
@@ -658,7 +658,7 @@ void print_help (const char *name)
         "    %s\n"
         "        [--help]\n"
         "        [--version]\n"
-        "        [--logger <"LOGGERS_STRING">]\n"
+        "        [--logger <" LOGGERS_STRING ">]\n" 
         #ifndef BADVPN_USE_WINAPI
         "        (logger=syslog?\n"
         "            [--syslog-facility <string>]\n"
@@ -687,7 +687,7 @@ void print_help (const char *name)
 
 void print_version (void)
 {
-    printf(GLOBAL_PRODUCT_NAME" "PROGRAM_NAME" "GLOBAL_VERSION"\n"GLOBAL_COPYRIGHT_NOTICE"\n");
+    printf(GLOBAL_PRODUCT_NAME " " PROGRAM_NAME " " GLOBAL_VERSION "\n" GLOBAL_COPYRIGHT_NOTICE "\n");
 }
 
 int parse_arguments (int argc, char *argv[])
