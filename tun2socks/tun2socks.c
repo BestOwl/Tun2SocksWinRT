@@ -70,6 +70,10 @@
 #include <base/BLog_syslog.h>
 #endif
 
+#ifdef SHADOWSOCKS
+#include <sodium.h>
+#endif
+
 #include <tun2socks/tun2socks.h>
 
 #include <generated/blog_channel_tun2socks.h>

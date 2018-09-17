@@ -110,6 +110,8 @@ include_directories(
     lwip/src/include
     lwip/src/include/ipv4
     lwip/src/include/ipv6
+	libsodium/src/libsodium/include
+	libsodium/src/libsodium/include/sodium
 )
 
 link_directories(
@@ -334,6 +336,7 @@ if (BUILD_TUN2SOCKS OR BUILD_TUN2SOCKSWINRT)
     add_subdirectory(udpgw_client)
     add_subdirectory(lwip)
     add_subdirectory(tun2socks)
+	add_subdirectory(libsodium)
 endif ()
 
 # example programs
