@@ -334,7 +334,6 @@ if (BUILD_TUN2SOCKS OR BUILD_TUN2SOCKSWINRT)
     add_subdirectory(udpgw_client)
     add_subdirectory(lwip)
     add_subdirectory(tun2socks)
-	add_subdirectory(libsodium)
 endif ()
 
 # example programs
