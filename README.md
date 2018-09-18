@@ -2,50 +2,19 @@
 
 ## Introduction
 
-In this project I host some of my open-source networking software.
-All of the software is written in C and utilizes a custom-developed framework for event-driven programming.
-The extensive code sharing is the reason all the software is packaged together.
-However, it is possible to compile only the required components to avoid extra dependencies.
+This project is designed for UWP VPN Platform, the only working part is tun2socks, NCD and other features in BadVPN will not work.
+And is only works on Windows 10, although the original project is cross-platform, if you want to use on other platform or other BadVPN features, please go to https://github.com/ambrop72/badvpn
 
-### NCD programming language
-
-NCD (Network Configuration Daemon) is a daemon and programming/scripting language for configuration of network interfaces and other aspects of the operating system.
-It implements various functionalities as built-in modules, which may be used from an NCD program wherever and for whatever purpose the user needs them.
-This modularity makes NCD extremely flexible and extensible. It does a very good job with hotplugging in various forms, like USB network interfaces and link detection for wired devices.
-New features can be added by implementing statements as C-language modules using a straightforward interface.
-
-### Tun2socks network-layer proxifier
+### Tun2socks (or Tun2shadowsocks) network-layer proxifier
 
 The tun2socks program "socksifes" TCP connections at the network layer.
-It implements a TUN device which accepts all incoming TCP connections (regardless of destination IP), and forwards the connections through a SOCKS server.
-This allows you to forward all connections through SOCKS, without any need for application support.
+It implements a TUN device or a WinSock server which accepts all incoming TCP connections (regardless of destination IP), and forwards the connections through a SOCKS or Shadowsocks server.
+This allows you to forward all connections through SOCKS or Shadowsocks, without any need for application support.
 It can be used, for example, to forward connections through a remote SSH server.
-
-### Peer-to-peer VPN
-
-The VPN part of this project implements a Layer 2 (Ethernet) network between the peers (VPN nodes).
-The peers connect to a central server which acts as a communication proxy allowing the peers to establish direct connections between each other (data connections).
-These connections are used for transferring network data (Ethernet frames), and can be secured with a multitude of mechanisms. Notable features are:
-
-- UDP and TCP transport
-- Converges very quickly after a new peer joins
-- IGMP snooping to deliver multicasts efficiently (e.g. for IPTV)
-- Double SSL: if SSL is enabled, not only do peers connect to the server with SSL, but they use an additional layer of SSL when exchanging messages through the server
-- Features related to the NAT problem:
-  - Can work with multiple layers of NAT (needs configuration)
-  - Local peers inside a NAT can communicate directly
-  - Relaying as a fallback (needs configuration)
-
-## Documentation
-
-- [NCD] - Introduction to the NCD language.
-- [badvpn] - General description of BadVPN and its features.
-- [Examples] - Quick guide to setting up a working VPN.
-- [badvpn_server], [badvpn_client] - Documentation of individual programs.
 
 ## Requirements
 
-NCD only works on Linux. Tun2socks works on Linux and Windows. The P2P VPN works on Linux, Windows and FreeBSD (not tested often).
+ * Windows 10
 
 ## License
 
