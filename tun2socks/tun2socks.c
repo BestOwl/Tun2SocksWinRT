@@ -70,9 +70,7 @@
 #include <base/BLog_syslog.h>
 #endif
 
-#ifdef SHADOWSOCKS
 #include <sodium.h>
-#endif
 
 #include <tun2socks/tun2socks.h>
 
@@ -167,6 +165,15 @@ uint8_t *password_file_contents;
 // SOCKS authentication information
 struct BSocksClient_auth_info socks_auth_info[2];
 size_t socks_num_auth_info;
+
+// SOCKS info
+struct {
+	int use_shadowsocks;
+	int shadow_method;
+	int shadow_password;
+	unsigned char shadow_nonce[crypto_aead_aes256gcm_NPUBBYTES];
+	unsigned char shadow_key[crypto_aead_aes256gcm_KEYBYTES];
+} Socks_info;
 
 // remote udpgw server addr, if provided
 BAddr udpgw_remote_server_addr;
@@ -516,8 +523,32 @@ void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const 
 	// initialize socks server authentication
 	if (!init_socks_server_authentication(socks_server_address, socks_server_password))
 	{
-		BLog(ERROR, "Could not resovle remote socks server address");
+		BLog(BLOG_ERROR, "Could not resovle remote socks server address");
 		return;
+	}
+
+	// init shadowsocks info
+	Socks_info.use_shadowsocks = 1; // TO-DO: determine if we use SOCKS or Shadowsocks
+	if (Socks_info.use_shadowsocks) 
+	{
+		BLog(BLOG_INFO, "Shadowsocks enabled");
+		if (sodium_init() != 0)
+		{
+			BLog(ERROR, "Could not initialize libsodium");
+			goto fail5;
+		}
+
+		Socks_info.shadow_password = socks_server_password;
+
+		// Use AES-256-GCM for debugging
+		if (crypto_aead_aes256gcm_is_available() == 0)
+		{
+			BLog(BLOG_ERROR, "AES-256-GCM is not supoort on this CPU");
+			goto fail5;
+		}
+		crypto_aead_aes256gcm_keygen(Socks_info.shadow_key);
+		randombytes_buf(Socks_info.shadow_nonce, sizeof Socks_info.shadow_nonce);
+		BLog(BLOG_INFO, "Using method: AES-256-GCM");
 	}
 
 	// init time
@@ -1047,10 +1078,7 @@ int init_socks_server_authentication(char *server_address, char *password)
 	socks_auth_info[0] = BSocksClient_auth_none();
 	socks_num_auth_info = 1;
 
-	//size_t password_len = strlen(options.password);
-
-	//socks_auth_info[socks_num_auth_info++] = BSocksClient_auth_password(
-	//	"", 0, password, password_len);
+	// TO-DO: Add password info if we use SOCKS, not Shadowsocks
 
 	return 1;
 }
@@ -1840,7 +1868,10 @@ err_t client_recv_func (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t e
         // if there was nothing in the buffer before, and SOCKS is up, start send data
         if (client->buf_used == p_tot_len && client->socks_up) {
             ASSERT(!client->socks_closed) // this callback is removed when SOCKS is closed
-            
+
+			// TO-DO: shadowsocks: encrypt buffer
+			
+
             SYNC_DECL
             SYNC_FROMHERE
             client_send_to_socks(client);
@@ -1976,6 +2007,8 @@ void client_socks_recv_handler_done (struct tcp_client *client, int data_len)
     client->socks_recv_buf_used = data_len;
     client->socks_recv_buf_sent = 0;
     client->socks_recv_waiting = 0;
+
+	// TO-DO: shadowsocks: decrypt buffer
     
     // send to client
     if (client_socks_recv_send_out(client) < 0) {
