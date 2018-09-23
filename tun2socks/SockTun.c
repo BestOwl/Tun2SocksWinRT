@@ -184,6 +184,8 @@ int SockTun_Init(SockTun *obj, BReactor *reactor, char *tun_service_name, int mt
 
 	DebugError_Init(&obj->d_err, BReactor_PendingGroup(obj->reactor));
 	DebugObject_Init(&obj->d_obj);
+
+	return 1;
 }
 
 void SockTun_Send(SockTun *obj, uint8_t *data, int data_len) 
