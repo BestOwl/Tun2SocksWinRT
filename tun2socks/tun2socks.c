@@ -292,11 +292,10 @@ void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const 
 		return;
 	}
 
-	// initialize socks server authentication
-	if (!init_socks_server_authentication(socks_server_address, socks_server_password))
-	{
-		BLog(BLOG_ERROR, "Could not resovle remote socks server address");
-		return;
+	// resolve SOCKS server address
+	if (!BAddr_Parse2(&socks_server_addr, socks_server_address, NULL, 0, 0)) {
+		BLog(BLOG_ERROR, "socks server addr: BAddr_Parse2 failed");
+		return 0;
 	}
 
 	// init shadowsocks info
@@ -820,23 +819,6 @@ BAddr baddr_from_lwip (const ip_addr_t *ip_addr, uint16_t port_hostorder)
         BAddr_InitIPv4(&addr, ip_addr->u_addr.ip4.addr, hton16(port_hostorder));
     }
     return addr;
-}
-
-int init_socks_server_authentication(char *server_address, char *password)
-{
-	// resolve SOCKS server address
-	if (!BAddr_Parse2(&socks_server_addr, server_address, NULL, 0, 0)) {
-		BLog(BLOG_ERROR, "socks server addr: BAddr_Parse2 failed");
-		return 0;
-	}
-
-	// add none socks authentication method
-	socks_auth_info[0] = BSocksClient_auth_none();
-	socks_num_auth_info = 1;
-
-	// TO-DO: Add password info if we use SOCKS, not Shadowsocks
-
-	return 1;
 }
 
 void lwip_init_job_hadler_socktun(void *unused)
