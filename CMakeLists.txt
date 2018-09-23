@@ -332,6 +332,10 @@ if (BUILD_TUN2SOCKS)
     add_subdirectory(tun2socks)
 	add_subdirectory(tun2socks-winrt)
 endif ()
+if (BUILD_TUN2SOCKS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "WindowsStore")
+	add_subdirectory(tuntest)
+ENDIF()
+
 
 # example programs
 if (BUILD_EXAMPLES)
