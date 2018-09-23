@@ -28,6 +28,10 @@
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
         },
         {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x86-uwp"
+        },
+        {
           "name": "BUILD_NOTHING_BY_DEFAULT",
           "value": "1"
         },
@@ -56,6 +60,10 @@
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x86-uwp"
         },
         {
           "name": "BUILD_NOTHING_BY_DEFAULT",
@@ -89,6 +97,10 @@
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
         },
         {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-uwp"
+        },
+        {
           "name": "BUILD_NOTHING_BY_DEFAULT",
           "value": "1"
         },
@@ -117,6 +129,10 @@
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-uwp"
         },
         {
           "name": "BUILD_NOTHING_BY_DEFAULT",
@@ -149,6 +165,10 @@
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
         },
         {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "arm-uwp"
+        },
+        {
           "name": "BUILD_NOTHING_BY_DEFAULT",
           "value": "1"
         },
@@ -177,6 +197,10 @@
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
           "value": "${env.VCPKG_TOOLCHAIN_FILE}"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "arm-uwp"
         },
         {
           "name": "BUILD_NOTHING_BY_DEFAULT",
