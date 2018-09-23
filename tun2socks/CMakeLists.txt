@@ -4,10 +4,6 @@ add_library(badvpn-tun2socks
 	SockTun.c
 	SockTun.h
 )
-target_link_libraries(badvpn-tun2socks system flow lwip socksclient udpgw_client)
-if(BUILD_TUN2SOCKSWINRT)
-	add_definitions(-DBADVPN_USE_WINSOCK_AS_TUN_DEVICE)
-	target_link_libraries(badvpn-tun2socks libsodium)
-else()
-	target_link_libraries(badvpn-tun2socks tuntap)
-endif()
+
+find_package(OpenSSL REQUIRED)
+target_link_libraries(badvpn-tun2socks OpenSSL::Crypto system flow lwip socksclient udpgw_client)
