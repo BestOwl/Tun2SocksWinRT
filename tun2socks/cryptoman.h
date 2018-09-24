@@ -31,8 +31,8 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-const char *ss_iv;
+const char ss_iv[EVP_MAX_IV_LENGTH];
 
 int cryptoman_Init(char  *crypto_method_name, char *password);
-int encrypt(uint8_t *buf, int buf_len, const char *key, const char *iv, uint8_t *ciphertext);
-int decrypt(uint8_t *buf, int buf_len, const char *key, const *iv, uint8_t *plaintext);
+int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext);
+int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext);

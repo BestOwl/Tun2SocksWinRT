@@ -32,7 +32,7 @@
 
 #include "cryptoman.h"
 
-const char *key;
+const char key[EVP_MAX_KEY_LENGTH];
 
 const EVP_CIPHER *ss_cipher;
 const EVP_MD *ss_dgst;
@@ -71,7 +71,7 @@ void handleErrors()
 	abort();
 }
 
-int encrypt(uint8_t *buf, int buf_len, const char *key, const char *iv, uint8_t *ciphertext)
+int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext)
 {
 	EVP_CIPHER_CTX *ctx;
 
@@ -121,7 +121,7 @@ int encrypt(uint8_t *buf, int buf_len, const char *key, const char *iv, uint8_t 
 	return ciphertext_len;
 }
 
-int decrypt(uint8_t *buf, int buf_len, const char *key, const *iv, uint8_t *plaintext)
+int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext)
 {
 	EVP_CIPHER_CTX *ctx;
 
