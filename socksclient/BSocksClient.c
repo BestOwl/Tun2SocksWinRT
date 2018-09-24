@@ -53,11 +53,8 @@ static void free_control_io (BSocksClient *o);
 static void init_up_io (BSocksClient *o);
 static void free_up_io (BSocksClient *o);
 static int reserve_buffer (BSocksClient *o, bsize_t size);
-static void start_receive (BSocksClient *o, uint8_t *dest, int total);
-static void do_receive (BSocksClient *o);
 static void connector_handler (BSocksClient* o, int is_error);
 static void connection_handler (BSocksClient* o, int event);
-static void recv_handler_done (BSocksClient *o, int data_len);
 static void send_handler_done (BSocksClient *o);
 static void auth_finished (BSocksClient *p);
 
@@ -68,11 +65,6 @@ void report_error (BSocksClient *o, int error)
 
 void init_control_io (BSocksClient *o)
 {
-    // init receiving
-    BConnection_RecvAsync_Init(&o->con);
-    o->control.recv_if = BConnection_RecvAsync_GetIf(&o->con);
-    StreamRecvInterface_Receiver_Init(o->control.recv_if, (StreamRecvInterface_handler_done)recv_handler_done, o);
-    
     // init sending
     BConnection_SendAsync_Init(&o->con);
     PacketStreamSender_Init(&o->control.send_sender, BConnection_SendAsync_GetIf(&o->con), INT_MAX, BReactor_PendingGroup(o->reactor));
@@ -85,9 +77,6 @@ void free_control_io (BSocksClient *o)
     // free sending
     PacketStreamSender_Free(&o->control.send_sender);
     BConnection_SendAsync_Free(&o->con);
-    
-    // free receiving
-    BConnection_RecvAsync_Free(&o->con);
 }
 
 void init_up_io (BSocksClient *o)
@@ -125,25 +114,6 @@ int reserve_buffer (BSocksClient *o, bsize_t size)
     
     return 1;
 }
-
-void start_receive (BSocksClient *o, uint8_t *dest, int total)
-{
-    ASSERT(total > 0)
-    
-    o->control.recv_dest = dest;
-    o->control.recv_len = 0;
-    o->control.recv_total = total;
-    
-    do_receive(o);
-}
-
-void do_receive (BSocksClient *o)
-{
-    ASSERT(o->control.recv_len < o->control.recv_total)
-    
-    StreamRecvInterface_Receiver_Recv(o->control.recv_if, o->control.recv_dest + o->control.recv_len, o->control.recv_total - o->control.recv_len);
-}
-
 void connector_handler (BSocksClient* o, int is_error)
 {
     DebugObject_Access(&o->d_obj);
@@ -191,32 +161,6 @@ void connection_handler (BSocksClient* o, int event)
     
     report_error(o, BSOCKSCLIENT_EVENT_ERROR);
     return;
-}
-
-void recv_handler_done (BSocksClient *o, int data_len)
-{
-    ASSERT(data_len >= 0)
-    ASSERT(data_len <= o->control.recv_total - o->control.recv_len)
-    DebugObject_Access(&o->d_obj);
-    
-    o->control.recv_len += data_len;
-    
-    if (o->control.recv_len < o->control.recv_total) {
-        do_receive(o);
-        return;
-    }
-    
-    switch (o->state) {    
-       
-        
-        default:
-            ASSERT(0);
-    }
-    
-    return;
-    
-fail:
-    report_error(o, BSOCKSCLIENT_EVENT_ERROR);
 }
 
 void send_handler_done (BSocksClient *o)
