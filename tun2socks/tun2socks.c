@@ -65,12 +65,11 @@
 #include <lwip/ip6_frag.h>
 #include <tun2socks/SocksUdpGwClient.h>
 #include <tun2socks/SockTun.h>
+#include <tun2socks/cryptoman.h>
 
 #ifndef BADVPN_USE_WINAPI
 #include <base/BLog_syslog.h>
 #endif
-
-#include <sodium.h>
 
 #include <tun2socks/tun2socks.h>
 
@@ -162,14 +161,6 @@ uint8_t *password_file_contents;
 struct BSocksClient_auth_info socks_auth_info[2];
 size_t socks_num_auth_info;
 
-// SOCKS info
-struct {
-	int shadow_method;
-	int shadow_password;
-	unsigned char shadow_nonce[crypto_aead_aes256gcm_NPUBBYTES];
-	unsigned char shadow_key[crypto_aead_aes256gcm_KEYBYTES];
-} Socks_info;
-
 // remote udpgw server addr, if provided
 BAddr udpgw_remote_server_addr;
 
@@ -224,7 +215,6 @@ static int parse_arguments (int argc, char *argv[]);
 static int process_arguments (void);
 static void signal_handler (void *unused);
 static BAddr baddr_from_lwip (const ip_addr_t *ip_addr, uint16_t port_hostorder);
-static int init_socks_server_authentication(char *server_address, char *password);
 static void lwip_init_job_hadler_socktun(void *unused);
 static void tcp_timer_handler (void *unused);
 static void device_error_handler (void *unused);
@@ -256,7 +246,7 @@ static int client_socks_recv_send_out (struct tcp_client *client);
 static err_t client_sent_func (void *arg, struct tcp_pcb *tpcb, u16_t len);
 static void udpgw_client_handler_received (void *unused, BAddr local_addr, BAddr remote_addr, const uint8_t *data, int data_len);
 
-void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_address, const char *socks_server_password)
+void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_address, const char *crypto_method, const char *socks_server_password)
 {
 	// open standard streams
 	open_standard_streams();
@@ -295,21 +285,16 @@ void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const 
 	// resolve SOCKS server address
 	if (!BAddr_Parse2(&socks_server_addr, socks_server_address, NULL, 0, 0)) {
 		BLog(BLOG_ERROR, "socks server addr: BAddr_Parse2 failed");
-		return 0;
+		return;
 	}
 
-	// init shadowsocks info
+	// init shadowsocks
 	BLog(BLOG_INFO, "Shadowsocks enabled");
-	/*if (sodium_init() != 0)
+	if (!cryptoman_Init(crypto_method, socks_server_password))
 	{
-		BLog(ERROR, "Could not initialize libsodium");
-		goto fail5;
-	}*/
-
-	Socks_info.shadow_password = socks_server_password;
-
-	// Use AES-256-CFB for debugging
-	BLog(BLOG_INFO, "Using method: AES-256-CFB");
+		BLog(BLOG_ERROR, "Could not initialize shadowsocks");
+		return;
+	}
 
 	// init time
 	BTime_Init();

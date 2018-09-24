@@ -3,6 +3,8 @@ add_library(badvpn-tun2socks
     SocksUdpGwClient.c
 	SockTun.c
 	SockTun.h
+	cryptoman.c
+	cryptoman.h
 )
 
 find_package(OpenSSL REQUIRED)
