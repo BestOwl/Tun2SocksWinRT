@@ -47,7 +47,7 @@ struct _BLog_global blog_global = {
 #endif
 
 // keep in sync with level numbers in BLog.h!
-static char *level_names[] = { NULL, "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG" };
+static char *level_names[] = { NULL, "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG", "VERBOSE" };
 
 static void stdout_log (int channel, int level, const char *msg)
 {

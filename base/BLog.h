@@ -50,6 +50,7 @@
 #define BLOG_NOTICE 3
 #define BLOG_INFO 4
 #define BLOG_DEBUG 5
+#define BLOG_VERBOSE 6
 
 #define BLog(...) BLog_LogToChannel(BLOG_CURRENT_CHANNEL, __VA_ARGS__)
 #define BContextLog(context, ...) BLog_ContextLog((context), BLOG_CURRENT_CHANNEL, __VA_ARGS__)
@@ -173,7 +174,7 @@ void BLog_SetChannelLoglevel (int channel, int loglevel)
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(loglevel >= 0 && loglevel <= BLOG_DEBUG)
+    ASSERT(loglevel >= 0 && loglevel <= BLOG_VERBOSE)
     
     blog_global.channels[channel].loglevel = loglevel;
 }
@@ -182,7 +183,7 @@ int BLog_WouldLog (int channel, int level)
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     
     return (level <= blog_global.channels[channel].loglevel);
 }
@@ -254,7 +255,7 @@ void BLog_Finish (int channel, int level)
     ASSERT(blog_global.logging)
 #endif
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     ASSERT(BLog_WouldLog(channel, level))
     
     ASSERT(blog_global.logbuf_pos >= 0)
@@ -276,7 +277,7 @@ void BLog_LogToChannelVarArg (int channel, int level, const char *fmt, va_list v
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     
     if (!BLog_WouldLog(channel, level)) {
         return;
@@ -291,7 +292,7 @@ void BLog_LogToChannel (int channel, int level, const char *fmt, ...)
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     
     if (!BLog_WouldLog(channel, level)) {
         return;
@@ -311,7 +312,7 @@ void BLog_LogViaFuncVarArg (BLog_logfunc func, void *arg, int channel, int level
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     
     if (!BLog_WouldLog(channel, level)) {
         return;
@@ -327,7 +328,7 @@ void BLog_LogViaFunc (BLog_logfunc func, void *arg, int channel, int level, cons
 {
     ASSERT(blog_global.initialized)
     ASSERT(channel >= 0 && channel < BLOG_NUM_CHANNELS)
-    ASSERT(level >= BLOG_ERROR && level <= BLOG_DEBUG)
+    ASSERT(level >= BLOG_ERROR && level <= BLOG_VERBOSE)
     
     if (!BLog_WouldLog(channel, level)) {
         return;

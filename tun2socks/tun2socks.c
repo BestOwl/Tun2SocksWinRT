@@ -886,7 +886,7 @@ void tcp_timer_handler (void *unused)
 {
     ASSERT(!quitting)
     
-    BLog(BLOG_DEBUG, "TCP timer");
+    BLog(BLOG_VERBOSE, "TCP timer");
     
     // schedule next timer
     BReactor_SetTimer(&ss, &tcp_timer);
