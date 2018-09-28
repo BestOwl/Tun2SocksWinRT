@@ -65,7 +65,6 @@
 #include <lwip/ip6_frag.h>
 #include <tun2socks/SocksUdpGwClient.h>
 #include <tun2socks/SockTun.h>
-#include <tun2socks/cryptoman.h>
 
 #ifndef BADVPN_USE_WINAPI
 #include <base/BLog_syslog.h>
@@ -712,80 +711,6 @@ int parse_arguments (int argc, char *argv[])
     return 1;
 }
 
-int process_arguments (void)
-{
-    ASSERT(!password_file_contents)
-    
-    // resolve netif ipaddr
-    if (!BIPAddr_Resolve(&netif_ipaddr, options.netif_ipaddr, 0)) {
-        BLog(BLOG_ERROR, "netif ipaddr: BIPAddr_Resolve failed");
-        return 0;
-    }
-    if (netif_ipaddr.type != BADDR_TYPE_IPV4) {
-        BLog(BLOG_ERROR, "netif ipaddr: must be an IPv4 address");
-        return 0;
-    }
-    
-    // resolve netif netmask
-    if (!BIPAddr_Resolve(&netif_netmask, options.netif_netmask, 0)) {
-        BLog(BLOG_ERROR, "netif netmask: BIPAddr_Resolve failed");
-        return 0;
-    }
-    if (netif_netmask.type != BADDR_TYPE_IPV4) {
-        BLog(BLOG_ERROR, "netif netmask: must be an IPv4 address");
-        return 0;
-    }
-    
-    // parse IP6 address
-    if (options.netif_ip6addr) {
-        if (!ipaddr6_parse_ipv6_addr(MemRef_MakeCstr(options.netif_ip6addr), &netif_ip6addr)) {
-            BLog(BLOG_ERROR, "netif ip6addr: incorrect");
-            return 0;
-        }
-    }
-    
-    // resolve SOCKS server address
-    if (!BAddr_Parse2(&socks_server_addr, options.socks_server_addr, NULL, 0, 0)) {
-        BLog(BLOG_ERROR, "socks server addr: BAddr_Parse2 failed");
-        return 0;
-    }
-    
-    // add none socks authentication method
-    socks_auth_info[0] = BSocksClient_auth_none();
-    socks_num_auth_info = 1;
-    
-    // add password socks authentication method
-    if (options.username) {
-        const char *password;
-        size_t password_len;
-        if (options.password) {
-            password = options.password;
-            password_len = strlen(options.password);
-        } else {
-            if (!read_file(options.password_file, &password_file_contents, &password_len)) {
-                BLog(BLOG_ERROR, "failed to read password file");
-                return 0;
-            }
-            password = (char *)password_file_contents;
-        }
-        
-        socks_auth_info[socks_num_auth_info++] = BSocksClient_auth_password(
-            options.username, strlen(options.username),
-            password, password_len
-        );
-    }
-    
-    // resolve remote udpgw server address
-    if (options.udpgw_remote_server_addr) {
-        if (!BAddr_Parse2(&udpgw_remote_server_addr, options.udpgw_remote_server_addr, NULL, 0, 0)) {
-            BLog(BLOG_ERROR, "remote udpgw server addr: BAddr_Parse2 failed");
-            return 0;
-        }
-    }
-    
-    return 1;
-}
-
 void signal_handler (void *unused)
 {
     ASSERT(!quitting)
@@ -1208,18 +1133,6 @@ err_t listener_accept_func (void *arg, struct tcp_pcb *newpcb, err_t err)
     ASSERT_FORCE(BAddr_Parse2(&addr, OVERRIDE_DEST_ADDR, NULL, 0, 1))
 #endif
     
-    // add source address to username if requested
-    if (options.username && options.append_source_to_username) {
-        char addr_str[BADDR_MAX_PRINT_LEN];
-        BAddr_Print(&client->remote_addr, addr_str);
-        client->socks_username = concat_strings(3, options.username, "@", addr_str);
-        if (!client->socks_username) {
-            goto fail1;
-        }
-        socks_auth_info[1].password.username = client->socks_username;
-        socks_auth_info[1].password.username_len = strlen(client->socks_username);
-    }
-    
     // init SOCKS
     if (!BSocksClient_Init(&client->socks_client, socks_server_addr, socks_auth_info, socks_num_auth_info,
                            addr, (BSocksClient_handler)client_socks_handler, client, &ss)) {
@@ -1472,9 +1385,6 @@ err_t client_recv_func (void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t e
         if (client->buf_used == p_tot_len && client->socks_up) {
             ASSERT(!client->socks_closed) // this callback is removed when SOCKS is closed
 
-			// TO-DO: shadowsocks: encrypt buffer
-			
-
             SYNC_DECL
             SYNC_FROMHERE
             client_send_to_socks(client);
@@ -1611,8 +1521,6 @@ void client_socks_recv_handler_done (struct tcp_client *client, int data_len)
     client->socks_recv_buf_sent = 0;
     client->socks_recv_waiting = 0;
 
-	// TO-DO: shadowsocks: decrypt buffer
-    
     // send to client
     if (client_socks_recv_send_out(client) < 0) {
         return;

@@ -48,35 +48,72 @@
 #define STATE_UP 7
 
 static void report_error (BSocksClient *o, int error);
-static void init_control_io (BSocksClient *o);
-static void free_control_io (BSocksClient *o);
+static void init_crypto_io(BSocksClient *o);
+static void free_crypto_io(BSocksClient *o);
 static void init_up_io (BSocksClient *o);
 static void free_up_io (BSocksClient *o);
 static int reserve_buffer (BSocksClient *o, bsize_t size);
 static void connector_handler (BSocksClient* o, int is_error);
 static void connection_handler (BSocksClient* o, int event);
-static void send_handler_done (BSocksClient *o);
-static void auth_finished (BSocksClient *p);
+static void build_header(BSocksClient *p);
 
 void report_error (BSocksClient *o, int error)
 {
     DEBUGERROR(&o->d_err, o->handler(o->user, error))
 }
 
-void init_control_io (BSocksClient *o)
+static void encrypt_handler(BSocksClient *o, uint8_t *data, int data_len)
 {
-    // init sending
-    BConnection_SendAsync_Init(&o->con);
-    PacketStreamSender_Init(&o->control.send_sender, BConnection_SendAsync_GetIf(&o->con), INT_MAX, BReactor_PendingGroup(o->reactor));
-    o->control.send_if = PacketStreamSender_GetInput(&o->control.send_sender);
-    PacketPassInterface_Sender_Init(o->control.send_if, (PacketPassInterface_handler_done)send_handler_done, o);
+	o->cipher_buffer = BAlloc(data_len * 2);
+
+	size_t cipher_buf_len;
+	size_t iv_size = 0;
+
+	// IV only need in the first packet
+	if (!o->first_packet_sent)
+	{
+		iv_size = o->ss_iv_len;
+		random_iv(o->ss_iv, iv_size);
+		memcpy(o->cipher_buffer, o->ss_iv, iv_size);
+		o->first_packet_sent = 1;
+	}
+
+	o->header_len = encrypt(o->header_buffer, o->header_len, o->ss_iv, o->cipher_buffer + iv_size);
+	cipher_buf_len = encrypt(data, data_len, o->ss_iv, o->cipher_buffer + iv_size + o->header_len);
+	cipher_buf_len += iv_size += o->header_len;
+
+	StreamPassInterface_Sender_Send(&o->con.send.iface, o->cipher_buffer, cipher_buf_len);
 }
 
-void free_control_io (BSocksClient *o)
+static void decrypt_handler(BSocksClient *o, uint8_t *data, int data_len)
 {
-    // free sending
-    PacketStreamSender_Free(&o->control.send_sender);
-    BConnection_SendAsync_Free(&o->con);
+	BLog(BLOG_DEBUG, "Test");
+}
+
+static void init_crypto_io(BSocksClient *o)
+{
+	// init reading
+	StreamRecvInterface_Init(&o->decrypt_if, decrypt_handler, o, BReactor_PendingGroup(o->reactor));
+
+	// init sending
+	StreamPassInterface_Init(&o->encrypt_if, encrypt_handler, o, BReactor_PendingGroup(o->reactor));
+}
+
+static void free_crypto_io(BSocksClient *o)
+{
+	// free sending
+	StreamPassInterface_Free(&o->encrypt_if);
+
+	//free reading
+	StreamRecvInterface_Free(&o->decrypt_if);
+}
+
+static void up_handler_done(BSocksClient *o, int data_len) 
+{
+	// free buffer
+	BFree(o->cipher_buffer);
+
+	return;
 }
 
 void init_up_io (BSocksClient *o)
@@ -86,6 +123,7 @@ void init_up_io (BSocksClient *o)
     
     // init sending
     BConnection_SendAsync_Init(&o->con);
+	StreamPassInterface_Sender_Init(&o->con.send.iface, up_handler_done, o);
 }
 
 void free_up_io (BSocksClient *o)
@@ -104,13 +142,13 @@ int reserve_buffer (BSocksClient *o, bsize_t size)
         return 0;
     }
     
-    char *buffer = (char *)BRealloc(o->buffer, size.value);
+    char *buffer = (char *)BRealloc(o->header_buffer, size.value);
     if (!buffer) {
         BLog(BLOG_ERROR, "BRealloc failed");
         return 0;
     }
     
-    o->buffer = buffer;
+    o->header_buffer = buffer;
     
     return 1;
 }
@@ -132,18 +170,26 @@ void connector_handler (BSocksClient* o, int is_error)
     }
     
     BLog(BLOG_DEBUG, "connected");
-    
-    // init control I/O
-    init_control_io(o);
-    
-	// Shadowsocks: no need to send hello message
-	auth_finished(o);
+
+	o->first_packet_sent = 0;
+
+	// init buffer
+	build_header(o);
+
+	// init crypto io
+	init_crypto_io(o);
+
+	// init up I/O
+	init_up_io(o);
+
+	// set state
+	o->state = STATE_UP;
+
+	// call handler
+	o->handler(o->user, BSOCKSCLIENT_EVENT_UP);
     
     return;
     
-fail1:
-    free_control_io(o);
-    BConnection_Free(&o->con);
 fail0:
     report_error(o, BSOCKSCLIENT_EVENT_ERROR);
     return;
@@ -163,43 +209,7 @@ void connection_handler (BSocksClient* o, int event)
     return;
 }
 
-void send_handler_done (BSocksClient *o)
-{
-    DebugObject_Access(&o->d_obj);
-    ASSERT(o->buffer)
-    
-    switch (o->state) {
-		case STATE_SENDING_REQUEST: {
-			BLog(BLOG_DEBUG, "sent request");
-
-			// free buffer
-			BFree(o->buffer);
-			o->buffer = NULL;
-
-			// free control I/O
-			free_control_io(o);
-
-			// init up I/O
-			init_up_io(o);
-
-			// set state
-			o->state = STATE_UP;
-
-			// call handler
-			o->handler(o->user, BSOCKSCLIENT_EVENT_UP);
-			return;
-		} break;
-        default:
-            ASSERT(0);
-    }
-    
-    return;
-    
-fail:
-    report_error(o, BSOCKSCLIENT_EVENT_ERROR);
-}
-
-void auth_finished (BSocksClient *o)
+void build_header (BSocksClient *o)
 {
     // allocate request buffer
     bsize_t size = bsize_fromsize(sizeof(struct socks_request_header));
@@ -211,6 +221,7 @@ void auth_finished (BSocksClient *o)
         report_error(o, BSOCKSCLIENT_EVENT_ERROR);
         return;
     }
+	o->header_len = size.value;
     
     // write request
     struct socks_request_header header;
@@ -220,25 +231,19 @@ void auth_finished (BSocksClient *o)
             struct socks_addr_ipv4 addr;
             addr.addr = o->dest_addr.ipv4.ip;
             addr.port = o->dest_addr.ipv4.port;
-            memcpy(o->buffer + sizeof(header), &addr, sizeof(addr));
+            memcpy(o->header_buffer + sizeof(header), &addr, sizeof(addr));
         } break;
         case BADDR_TYPE_IPV6: {
             header.atyp = hton8(SOCKS_ATYP_IPV6);
             struct socks_addr_ipv6 addr;
             memcpy(addr.addr, o->dest_addr.ipv6.ip, sizeof(o->dest_addr.ipv6.ip));
             addr.port = o->dest_addr.ipv6.port;
-            memcpy(o->buffer + sizeof(header), &addr, sizeof(addr));
+            memcpy(o->header_buffer + sizeof(header), &addr, sizeof(addr));
         } break;
         default:
             ASSERT(0);
     }
-    memcpy(o->buffer, &header, sizeof(header));
-    
-    // send request
-    PacketPassInterface_Sender_Send(o->control.send_if, (uint8_t *)o->buffer, size.value);
-    
-    // set state
-    o->state = STATE_SENDING_REQUEST;
+    memcpy(o->header_buffer, &header, sizeof(header));
 }
 
 int BSocksClient_Init (BSocksClient *o,
@@ -249,21 +254,23 @@ int BSocksClient_Init (BSocksClient *o,
     ASSERT(dest_addr.type == BADDR_TYPE_IPV4 || dest_addr.type == BADDR_TYPE_IPV6)
     
     // init arguments
-    o->auth_info = auth_info;
-    o->num_auth_info = num_auth_info;
     o->dest_addr = dest_addr;
     o->handler = handler;
     o->user = user;
     o->reactor = reactor;
     
     // set no buffer
-    o->buffer = NULL;
+    o->header_buffer = NULL;
     
     // init connector
     if (!BConnector_Init(&o->connector, server_addr, o->reactor, o, (BConnector_handler)connector_handler)) {
         BLog(BLOG_ERROR, "BConnector_Init failed");
         goto fail0;
     }
+
+	// init iv buffer
+	o->ss_iv_len = ss_crypto_info.iv_size;
+	o->ss_iv = BAlloc(o->ss_iv_len);
     
     // set state
     o->state = STATE_CONNECTING;
@@ -285,10 +292,8 @@ void BSocksClient_Free (BSocksClient *o)
         if (o->state == STATE_UP) {
             // free up I/O
             free_up_io(o);
-        } else {
-            // free control I/O
-            free_control_io(o);
-        }
+			free_crypto_io(o);
+        } 
         
         // free connection
         BConnection_Free(&o->con);
@@ -298,9 +303,13 @@ void BSocksClient_Free (BSocksClient *o)
     BConnector_Free(&o->connector);
     
     // free buffer
-    if (o->buffer) {
-        BFree(o->buffer);
+    if (o->header_buffer) {
+        BFree(o->header_buffer);
     }
+	if (o->ss_iv)
+	{
+		BFree(o->ss_iv);
+	}
 }
 
 StreamPassInterface * BSocksClient_GetSendInterface (BSocksClient *o)
@@ -308,7 +317,7 @@ StreamPassInterface * BSocksClient_GetSendInterface (BSocksClient *o)
     ASSERT(o->state == STATE_UP)
     DebugObject_Access(&o->d_obj);
     
-    return BConnection_SendAsync_GetIf(&o->con);
+    return &o->encrypt_if;
 }
 
 StreamRecvInterface * BSocksClient_GetRecvInterface (BSocksClient *o)

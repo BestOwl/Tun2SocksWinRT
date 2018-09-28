@@ -29,40 +29,46 @@
 
 #include <system/BReactor.h>
 #include <base/BLog.h>
+#include <openssl/rand.h>
 
 #include "cryptoman.h"
-
-const char key[EVP_MAX_KEY_LENGTH];
-
-const EVP_CIPHER *ss_cipher;
-const EVP_MD *ss_dgst;
 
 int cryptoman_Init(char  *crypto_method_name, char *password)
 {
 	OpenSSL_add_all_algorithms();
 
-	ss_cipher = EVP_get_cipherbyname(crypto_method_name);
-	if (!ss_cipher)
+	ss_crypto_info.cipher = EVP_get_cipherbyname(crypto_method_name);
+	if (!ss_crypto_info.cipher)
 	{
 		BLog(BLOG_ERROR, "Unsupoorted crypto method %s", crypto_method_name);
 		return 0;
 	}
 	
-	ss_dgst = EVP_get_digestbyname("md5");
-	if (!ss_dgst) 
+	ss_crypto_info.dgst = EVP_get_digestbyname("md5");
+	if (!ss_crypto_info.dgst)
 	{ 
 		BLog(BLOG_ERROR, "EVP_get_digestbyname failed"); 
 		return 0;
 	}
 
-	if (!EVP_BytesToKey(ss_cipher, ss_dgst, NULL, password, strlen(password), 1, key, ss_iv))
+	if (!EVP_BytesToKey(ss_crypto_info.cipher, ss_crypto_info.dgst, NULL, password, strlen(password), 1, ss_crypto_info.key, NULL))
 	{
 		BLog(BLOG_ERROR, "EVP_BytesToKey failed");
 		return 0;
 	}
+	
+	// TO-DO: some cipher iv may less than 16
+	ss_crypto_info.iv_size = EVP_MAX_IV_LENGTH;
+
+	ss_crypto_info.password = password;
 
 	BLog(BLOG_INFO, "Using method: %s", crypto_method_name);
 	return 1;
+}
+
+int random_iv(char *iv, int size)
+{
+	return RAND_bytes(iv, size);
 }
 
 void handleErrors()
@@ -90,7 +96,7 @@ int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext)
 	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits */
-	if (1 != EVP_EncryptInit_ex(ctx, ss_cipher, NULL, key, iv))
+	if (1 != EVP_EncryptInit_ex(ctx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
 	{
 		handleErrors();
 	}
@@ -140,7 +146,7 @@ int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext)
 	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits */
-	if (1 != EVP_DecryptInit_ex(ctx, ss_cipher, NULL, key, iv))
+	if (1 != EVP_DecryptInit_ex(ctx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
 	{
 		handleErrors();
 	}

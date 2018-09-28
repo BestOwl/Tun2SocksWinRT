@@ -31,8 +31,15 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-const char ss_iv[EVP_MAX_IV_LENGTH];
+struct socks_crypto_info_t {
+	const char key[EVP_MAX_KEY_LENGTH];
+	int iv_size;
+	const EVP_CIPHER *cipher;
+	const EVP_MD *dgst;
+	const *password;
+} ss_crypto_info;
 
 int cryptoman_Init(char  *crypto_method_name, char *password);
+int random_iv(char *iv, int size);
 int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext);
 int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext);

@@ -42,7 +42,8 @@
 #include <misc/packed.h>
 #include <base/DebugObject.h>
 #include <system/BConnection.h>
-#include <flow/PacketStreamSender.h>
+
+#include <socksclient/cryptoman.h>
 
 #define BSOCKSCLIENT_EVENT_ERROR 1
 #define BSOCKSCLIENT_EVENT_UP 2
@@ -82,19 +83,25 @@ typedef struct {
     void *user;
     BReactor *reactor;
     int state;
-    char *buffer;
     BConnector connector;
     BConnection con;
-    union {
-        struct {
-            PacketPassInterface *send_if;
-            PacketStreamSender send_sender;
-            StreamRecvInterface *recv_if;
-            uint8_t *recv_dest;
-            int recv_len;
-            int recv_total;
-        } control;
-    };
+
+	// crypto interface
+	StreamPassInterface encrypt_if;
+	StreamRecvInterface decrypt_if;
+
+	// buffer
+	uint8_t *cipher_buffer;
+	char *header_buffer;
+	size_t header_len;
+	
+	// IV
+	char *ss_iv;
+	size_t ss_iv_len;
+
+	// is first packet
+	int first_packet_sent;
+
     DebugError d_err;
     DebugObject d_obj;
 } BSocksClient;
