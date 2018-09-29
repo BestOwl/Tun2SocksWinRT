@@ -64,30 +64,52 @@ void report_error (BSocksClient *o, int error)
 
 static void encrypt_handler(BSocksClient *o, uint8_t *data, int data_len)
 {
-	o->cipher_buffer = BAlloc(data_len * 2);
+	// allocate cipher buffer
+	if (!(o->cipher_buffer = BAlloc(data_len * 2)))
+	{
+		BLog(BLOG_ERROR, "BAlloc failed");
+		return;
+	}
 
 	size_t cipher_buf_len;
 	size_t iv_size = 0;
+	size_t en_header_size = 0;
 
-	// IV only need in the first packet
+	// IV and header only need in the first packet
 	if (!o->first_packet_sent)
 	{
+		// generate and copy IV
 		iv_size = o->ss_iv_len;
 		random_iv(o->ss_iv, iv_size);
 		memcpy(o->cipher_buffer, o->ss_iv, iv_size);
+
+		// copy header
+		en_header_size = encrypt(o->header_buffer, o->header_len, o->ss_iv, o->cipher_buffer + iv_size);
+
 		o->first_packet_sent = 1;
 	}
 
-	o->header_len = encrypt(o->header_buffer, o->header_len, o->ss_iv, o->cipher_buffer + iv_size);
-	cipher_buf_len = encrypt(data, data_len, o->ss_iv, o->cipher_buffer + iv_size + o->header_len);
-	cipher_buf_len += iv_size += o->header_len;
+	cipher_buf_len = encrypt(data, data_len, o->ss_iv, o->cipher_buffer + iv_size + en_header_size);
+	cipher_buf_len += iv_size += en_header_size;
+
+	o->plain_len = data_len;
 
 	StreamPassInterface_Sender_Send(&o->con.send.iface, o->cipher_buffer, cipher_buf_len);
 }
 
 static void decrypt_handler(BSocksClient *o, uint8_t *data, int data_len)
 {
-	BLog(BLOG_DEBUG, "Test");
+	// allocate recv buffer
+	if (!(o->socks_recv_buf = BAlloc(data_len)))
+	{
+		BLog(BLOG_ERROR, "BAlloc failed");
+		return;
+	}
+
+	o->decrypted_buf = data;
+
+	// padding to receive
+	StreamRecvInterface_Receiver_Recv(&o->con.recv.iface, o->socks_recv_buf, data_len);
 }
 
 static void init_crypto_io(BSocksClient *o)
@@ -110,16 +132,38 @@ static void free_crypto_io(BSocksClient *o)
 
 static void up_handler_done(BSocksClient *o, int data_len) 
 {
+	StreamPassInterface_Done(&o->encrypt_if, o->plain_len);
+	o->plain_len = 0;
+
 	// free buffer
 	BFree(o->cipher_buffer);
+}
 
-	return;
+static void down_handler_done(BSocksClient *o, int data_len)
+{
+	size_t iv_size = 0;
+
+	if (!o->first_packet_recved)
+	{
+		memcpy(o->ss_remote_iv, o->socks_recv_buf, o->ss_iv_len);
+		iv_size = o->ss_iv_len;
+
+		o->first_packet_recved = 1;
+	}
+
+	size_t len = decrypt(o->socks_recv_buf + iv_size, data_len - iv_size, o->ss_remote_iv, o->decrypted_buf);
+
+	StreamRecvInterface_Done(&o->decrypt_if, len);
+
+	// free buffer
+	BFree(o->socks_recv_buf);
 }
 
 void init_up_io (BSocksClient *o)
 {
     // init receiving
     BConnection_RecvAsync_Init(&o->con);
+	StreamRecvInterface_Receiver_Init(&o->con.recv.iface, down_handler_done, o);
     
     // init sending
     BConnection_SendAsync_Init(&o->con);
@@ -172,6 +216,7 @@ void connector_handler (BSocksClient* o, int is_error)
     BLog(BLOG_DEBUG, "connected");
 
 	o->first_packet_sent = 0;
+	o->first_packet_recved = 0;
 
 	// init buffer
 	build_header(o);
@@ -270,7 +315,16 @@ int BSocksClient_Init (BSocksClient *o,
 
 	// init iv buffer
 	o->ss_iv_len = ss_crypto_info.iv_size;
-	o->ss_iv = BAlloc(o->ss_iv_len);
+	if (!(o->ss_iv = BAlloc(o->ss_iv_len)))
+	{
+		BLog(BLOG_ERROR, "BAlloc failed");
+		return 0;
+	}
+	if (!(o->ss_remote_iv = BAlloc(o->ss_iv_len)))
+	{
+		BLog(BLOG_ERROR, "BAlloc failed");
+		return 0;
+	}
     
     // set state
     o->state = STATE_CONNECTING;
@@ -310,6 +364,10 @@ void BSocksClient_Free (BSocksClient *o)
 	{
 		BFree(o->ss_iv);
 	}
+	if (o->ss_remote_iv)
+	{
+		BFree(o->ss_remote_iv);
+	}
 }
 
 StreamPassInterface * BSocksClient_GetSendInterface (BSocksClient *o)
@@ -325,5 +383,5 @@ StreamRecvInterface * BSocksClient_GetRecvInterface (BSocksClient *o)
     ASSERT(o->state == STATE_UP)
     DebugObject_Access(&o->d_obj);
     
-    return BConnection_RecvAsync_GetIf(&o->con);
+    return &o->decrypt_if;
 }

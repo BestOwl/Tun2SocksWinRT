@@ -92,15 +92,22 @@ typedef struct {
 
 	// buffer
 	uint8_t *cipher_buffer;
+	size_t plain_len;
+
+	uint8_t *socks_recv_buf;
+	uint8_t *decrypted_buf;
+
 	char *header_buffer;
 	size_t header_len;
 	
 	// IV
 	char *ss_iv;
+	char *ss_remote_iv;
 	size_t ss_iv_len;
 
 	// is first packet
 	int first_packet_sent;
+	int first_packet_recved;
 
     DebugError d_err;
     DebugObject d_obj;
