@@ -32,7 +32,7 @@
 
 extern "C" {
 #include <tun2socks/tun2socks.h>
-void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_addr, const char *socks_server_password);
+void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_addr, const char *crypto_method, const char *socks_server_password);
 }
 
 namespace Tun2SocksWinRT 
@@ -40,7 +40,7 @@ namespace Tun2SocksWinRT
 	public ref class Tun2Socks sealed
 	{
 		public:
-			void Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ socksServerPassword);
+			void Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ cryptoMethod, Platform::String^ socksServerPassword);
 
 		/*private:
 			static void stdlog(int channel, int level, const char *msg);*/

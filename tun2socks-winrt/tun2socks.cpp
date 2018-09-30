@@ -41,7 +41,7 @@ namespace Tun2SocksWinRT
 		fprintf(stdout, "%s(%s): %s\n", level_names[level], blog_global.channels[channel].name, msg);
 	}*/
 
-	void Tun2Socks::Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ socksServerPassword)
+	void Tun2Socks::Init(Platform::String^ tunServiceName, Platform::String^ vlanAddr, Platform::String^ vlanNetmask, int mtu, Platform::String^ socksServerAddr, Platform::String^ cryptoMethod, Platform::String^ socksServerPassword)
 	{
 		// Cast String to char*
 		stdext::cvt::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
@@ -50,9 +50,10 @@ namespace Tun2SocksWinRT
 		std::string vlan_addr = converter.to_bytes(vlanAddr->Data());
 		std::string vlan_netmask = converter.to_bytes(vlanNetmask->Data());
 		std::string socks_addr = converter.to_bytes(socksServerAddr->Data());
+		std::string crypto_method = converter.to_bytes(cryptoMethod->Data());
 		std::string socks_password = converter.to_bytes(socksServerPassword->Data());
 
-		tun2socks_Init(service_name.c_str(), vlan_addr.c_str(), vlan_netmask.c_str(), mtu, socks_addr.c_str(), socks_password.c_str());
+		tun2socks_Init(service_name.c_str(), vlan_addr.c_str(), vlan_netmask.c_str(), mtu, socks_addr.c_str(), crypto_method.c_str(), socks_password.c_str());
 	}
 }
 
