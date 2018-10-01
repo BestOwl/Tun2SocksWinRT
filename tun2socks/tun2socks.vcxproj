@@ -125,7 +125,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -143,7 +143,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>
@@ -159,7 +159,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -178,7 +178,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>
@@ -194,7 +194,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -212,7 +212,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)lwip\custom;$(SolutionDir)lwip\src\include;$(SolutionDir)lwip\src\include\ipv4;$(SolutionDir)lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;$(ProjectDir)..\lwip\custom;$(ProjectDir)..\lwip\src\include;$(ProjectDir)..\lwip\src\include\ipv4;$(ProjectDir)..\lwip\src\include\ipv6;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>

@@ -125,7 +125,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -145,7 +145,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>
@@ -161,7 +161,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -181,7 +181,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>
@@ -197,7 +197,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -217,7 +217,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BADVPN_BREACTOR_BADVPN;BADVPN_USE_WINAPI;BADVPN_THREAD_SAFE=0;BADVPN_LITTLE_ENDIAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4065;4018;4533;4244;4102</DisableSpecificWarnings>
