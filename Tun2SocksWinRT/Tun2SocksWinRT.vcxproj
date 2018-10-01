@@ -131,7 +131,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\base\base.lib;$(SolutionDir)$(Platform)\$(Configuration)\flow\flow.lib;$(SolutionDir)$(Platform)\$(Configuration)\system\system.lib;$(SolutionDir)$(Platform)\$(Configuration)\lwip\lwip.lib;$(SolutionDir)$(Platform)\$(Configuration)\flowextra\flowextra.lib;$(SolutionDir)$(Platform)\$(Configuration)\cryptoman\cryptoman.lib;$(SolutionDir)$(Platform)\$(Configuration)\socksclient\socksclient.lib;$(SolutionDir)$(Platform)\$(Configuration)\udpgw_client\udpgw_client.lib;$(SolutionDir)$(Platform)\$(Configuration)\tun2socks\tun2socks.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)$(Configuration)\base\base.lib;$(SolutionDir)$(Configuration)\flow\flow.lib;$(SolutionDir)$(Configuration)\system\system.lib;$(SolutionDir)$(Configuration)\lwip\lwip.lib;$(SolutionDir)$(Configuration)\flowextra\flowextra.lib;$(SolutionDir)$(Configuration)\cryptoman\cryptoman.lib;$(SolutionDir)$(Configuration)\socksclient\socksclient.lib;$(SolutionDir)$(Configuration)\udpgw_client\udpgw_client.lib;$(SolutionDir)$(Configuration)\tun2socks\tun2socks.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -148,7 +148,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\base\base.lib;$(SolutionDir)$(Platform)\$(Configuration)\flow\flow.lib;$(SolutionDir)$(Platform)\$(Configuration)\system\system.lib;$(SolutionDir)$(Platform)\$(Configuration)\lwip\lwip.lib;$(SolutionDir)$(Platform)\$(Configuration)\flowextra\flowextra.lib;$(SolutionDir)$(Platform)\$(Configuration)\cryptoman\cryptoman.lib;$(SolutionDir)$(Platform)\$(Configuration)\socksclient\socksclient.lib;$(SolutionDir)$(Platform)\$(Configuration)\udpgw_client\udpgw_client.lib;$(SolutionDir)$(Platform)\$(Configuration)\tun2socks\tun2socks.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)$(Configuration)\base\base.lib;$(SolutionDir)$(Configuration)\flow\flow.lib;$(SolutionDir)$(Configuration)\system\system.lib;$(SolutionDir)$(Configuration)\lwip\lwip.lib;$(SolutionDir)$(Configuration)\flowextra\flowextra.lib;$(SolutionDir)$(Configuration)\cryptoman\cryptoman.lib;$(SolutionDir)$(Configuration)\socksclient\socksclient.lib;$(SolutionDir)$(Configuration)\udpgw_client\udpgw_client.lib;$(SolutionDir)$(Configuration)\tun2socks\tun2socks.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
