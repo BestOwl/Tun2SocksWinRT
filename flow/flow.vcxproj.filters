@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BufferWriter.c" />
+    <ClCompile Include="LineBuffer.c" />
+    <ClCompile Include="PacketBuffer.c" />
+    <ClCompile Include="PacketCopier.c" />
+    <ClCompile Include="PacketPassConnector.c" />
+    <ClCompile Include="PacketPassFairQueue.c" />
+    <ClCompile Include="PacketPassFifoQueue.c" />
+    <ClCompile Include="PacketPassInterface.c" />
+    <ClCompile Include="PacketPassNotifier.c" />
+    <ClCompile Include="PacketPassPriorityQueue.c" />
+    <ClCompile Include="PacketProtoDecoder.c" />
+    <ClCompile Include="PacketProtoEncoder.c" />
+    <ClCompile Include="PacketProtoFlow.c" />
+    <ClCompile Include="PacketRecvBlocker.c" />
+    <ClCompile Include="PacketRecvConnector.c" />
+    <ClCompile Include="PacketRecvInterface.c" />
+    <ClCompile Include="PacketRouter.c" />
+    <ClCompile Include="PacketStreamSender.c" />
+    <ClCompile Include="RouteBuffer.c" />
+    <ClCompile Include="SinglePacketBuffer.c" />
+    <ClCompile Include="SinglePacketSender.c" />
+    <ClCompile Include="SingleStreamReceiver.c" />
+    <ClCompile Include="SingleStreamSender.c" />
+    <ClCompile Include="StreamPacketSender.c" />
+    <ClCompile Include="StreamPassConnector.c" />
+    <ClCompile Include="StreamPassInterface.c" />
+    <ClCompile Include="StreamRecvConnector.c" />
+    <ClCompile Include="StreamRecvInterface.c" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\core\def.c" />
+    <ClCompile Include="src\core\ipv4\icmp.c" />
+    <ClCompile Include="src\core\ipv6\icmp6.c" />
+    <ClCompile Include="src\core\inet_chksum.c" />
+    <ClCompile Include="src\core\init.c" />
+    <ClCompile Include="src\core\ip.c" />
+    <ClCompile Include="src\core\ipv4\ip4.c" />
+    <ClCompile Include="src\core\ipv4\ip4_addr.c" />
+    <ClCompile Include="src\core\ipv4\ip4_frag.c" />
+    <ClCompile Include="src\core\ipv6\ip6.c" />
+    <ClCompile Include="src\core\ipv6\ip6_addr.c" />
+    <ClCompile Include="src\core\ipv6\ip6_frag.c" />
+    <ClCompile Include="src\core\mem.c" />
+    <ClCompile Include="src\core\memp.c" />
+    <ClCompile Include="src\core\ipv6\nd6.c" />
+    <ClCompile Include="src\core\netif.c" />
+    <ClCompile Include="src\core\pbuf.c" />
+    <ClCompile Include="src\core\stats.c" />
+    <ClCompile Include="src\core\sys.c" />
+    <ClCompile Include="custom\sys.c" />
+    <ClCompile Include="src\core\tcp.c" />
+    <ClCompile Include="src\core\tcp_in.c" />
+    <ClCompile Include="src\core\tcp_out.c" />
+    <ClCompile Include="src\core\timeouts.c" />
+    <ClCompile Include="src\core\udp.c" />
+  </ItemGroup>
+</Project>

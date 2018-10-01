@@ -29,6 +29,8 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pch.h"
+
 #include <cvt/wstring>
 #include <codecvt>
 //#include <base/BLog.c>

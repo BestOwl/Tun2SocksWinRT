@@ -1,5 +1,5 @@
 badvpn_add_library(socksclient "system;flow;flowextra" "" 
-	"BSocksClient.c;cryptoman.c;cryptoman.h"
+	"BSocksClient.c"
 )
 
 find_package(OpenSSL REQUIRED)

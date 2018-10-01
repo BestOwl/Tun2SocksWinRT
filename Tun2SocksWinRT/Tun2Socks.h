@@ -32,7 +32,6 @@
 
 extern "C" {
 #include <tun2socks/tun2socks.h>
-void tun2socks_Init(const char *tun_service_name, const char  *vlan_addr, const char *vlan_netmask, int mtu, const char *socks_server_addr, const char *crypto_method, const char *socks_server_password);
 }
 
 namespace Tun2SocksWinRT 

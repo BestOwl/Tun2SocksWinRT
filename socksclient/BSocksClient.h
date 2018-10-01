@@ -43,7 +43,7 @@
 #include <base/DebugObject.h>
 #include <system/BConnection.h>
 
-#include <socksclient/cryptoman.h>
+#include <cryptoman/cryptoman.h>
 
 #define BSOCKSCLIENT_EVENT_ERROR 1
 #define BSOCKSCLIENT_EVENT_UP 2
