@@ -5,12 +5,11 @@
 This project is designed for UWP VPN Platform, the only working part is tun2socks, NCD and other features in BadVPN will not work.
 And is only works on Windows 10, although the original project is cross-platform, if you want to use on other platform or other BadVPN features, please go to https://github.com/ambrop72/badvpn
 
-### Tun2socks (or Tun2shadowsocks) network-layer proxifier
+### Tun2shadowsocks network-layer proxifier
 
 The tun2socks program "socksifes" TCP connections at the network layer.
-It implements a TUN device or a WinSock server which accepts all incoming TCP connections (regardless of destination IP), and forwards the connections through a SOCKS or Shadowsocks server.
-This allows you to forward all connections through SOCKS or Shadowsocks, without any need for application support.
-It can be used, for example, to forward connections through a remote SSH server.
+It implements a TUN device work with the UWP vpn plugin which accepts all incoming TCP connections (regardless of destination IP), and forwards the connections through a shadowsocks server.
+This allows you to forward all connections through shadowsocks, without any need for application support.
 
 ## Requirements
 
