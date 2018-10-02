@@ -99,6 +99,10 @@ typedef struct {
 
 	char *header_buffer;
 	size_t header_len;
+
+	// encryptor, decryptor
+	EVP_CIPHER_CTX *encryptor;
+	EVP_CIPHER_CTX *decryptor;
 	
 	// IV
 	char *ss_iv;

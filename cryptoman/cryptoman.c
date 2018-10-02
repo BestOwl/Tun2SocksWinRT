@@ -51,7 +51,8 @@ int cryptoman_Init(char  *crypto_method_name, char *password)
 		return 0;
 	}
 
-	if (!EVP_BytesToKey(ss_crypto_info.cipher, ss_crypto_info.dgst, NULL, password, strlen(password), 1, ss_crypto_info.key, NULL))
+	ss_crypto_info.key_len = EVP_BytesToKey(ss_crypto_info.cipher, ss_crypto_info.dgst, NULL, password, strlen(password), 1, ss_crypto_info.key, NULL);
+	if (!ss_crypto_info.key_len)
 	{
 		BLog(BLOG_ERROR, "EVP_BytesToKey failed");
 		return 0;
@@ -71,108 +72,75 @@ int random_iv(char *iv, int size)
 	return RAND_bytes(iv, size);
 }
 
-void handleErrors()
+int encryptor_Init(EVP_CIPHER_CTX *octx, const char *iv)
 {
-	ERR_print_errors_fp(stderr);
-	abort();
+	// initialise the context 
+	if (1 != EVP_EncryptInit_ex(octx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
+	{
+		BLog(BLOG_DEBUG, "EVP_EncryptInit_ex failed");
+		return 0;
+	}
+
+	if (1 != EVP_CIPHER_CTX_set_key_length(octx, ss_crypto_info.key_len))
+	{
+		BLog(BLOG_ERROR, "EVP_CIPHER_CTX_set_key_length failed");
+		return 0;
+	}
+
+	// set no padding
+	EVP_CIPHER_CTX_set_padding(octx, 0);
+
+	return 1;
 }
 
-int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext)
+int decryptor_Init(EVP_CIPHER_CTX *octx, const char *iv)
 {
-	EVP_CIPHER_CTX *ctx;
+	// initialise the context 
+	if (1 != EVP_DecryptInit_ex(octx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
+	{
+		BLog(BLOG_DEBUG, "EVP_DecryptInit_ex failed");
+		return 0;
+	}
 
-	int len;
+	if (1 != EVP_CIPHER_CTX_set_key_length(octx, ss_crypto_info.key_len))
+	{
+		BLog(BLOG_ERROR, "EVP_CIPHER_CTX_set_key_length failed");
+		return 0;
+	}
 
+	// set no padding
+	EVP_CIPHER_CTX_set_padding(octx, 0);
+
+	return 1;
+}
+
+int encrypt(EVP_CIPHER_CTX *ctx, uint8_t *buf, int buf_len, uint8_t *ciphertext)
+{
 	int ciphertext_len;
 
-	/* Create and initialise the context */
-	if (!(ctx = EVP_CIPHER_CTX_new()))
+	// Provide the message to be encrypted, and obtain the encrypted output.
+	if (1 != EVP_EncryptUpdate(ctx, ciphertext, &ciphertext_len, buf, buf_len))
 	{
-		handleErrors();
+		BLog(BLOG_ERROR, "EVP_EncryptUpdate failed, could not encrypt buffer");
 	}
-
-	/* Initialise the encryption operation. IMPORTANT - ensure you use a key
-	 * and IV size appropriate for your cipher
-	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
-	 * IV size for *most* modes is the same as the block size. For AES this
-	 * is 128 bits */
-	if (1 != EVP_EncryptInit_ex(ctx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
-	{
-		handleErrors();
-	}
-
-	/* Provide the message to be encrypted, and obtain the encrypted output.
-	 * EVP_EncryptUpdate can be called multiple times if necessary
-	 */
-	if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, buf, buf_len))
-	{
-		handleErrors();
-	}
-
-	ciphertext_len = len;
-
-	/* Finalise the encryption. Further ciphertext bytes may be written at
-	 * this stage.
-	 */
-	if (1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
-	{
-		handleErrors();
-	}
-
-	ciphertext_len += len;
-
-	/* Clean up */
-	EVP_CIPHER_CTX_free(ctx);
 
 	return ciphertext_len;
 }
 
-int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext)
+int decrypt(EVP_CIPHER_CTX *ctx, uint8_t *buf, int buf_len, uint8_t *plaintext)
 {
-	EVP_CIPHER_CTX *ctx;
-
-	int len;
-
 	int plaintext_len;
 
-	/* Create and initialise the context */
-	if (!(ctx = EVP_CIPHER_CTX_new()))
+	// Provide the message to be decrypted, and obtain the plaintext output.
+	if (1 != EVP_DecryptUpdate(ctx, plaintext, &plaintext_len, buf, buf_len))
 	{
-		handleErrors();
+		BLog(BLOG_ERROR, "EVP_DecryptUpdate failed, could not decrypt buffer");
 	}
-
-	/* Initialise the decryption operation. IMPORTANT - ensure you use a key
-	 * and IV size appropriate for your cipher
-	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
-	 * IV size for *most* modes is the same as the block size. For AES this
-	 * is 128 bits */
-	if (1 != EVP_DecryptInit_ex(ctx, ss_crypto_info.cipher, NULL, ss_crypto_info.key, iv))
-	{
-		handleErrors();
-	}
-
-	/* Provide the message to be decrypted, and obtain the plaintext output.
-	 * EVP_DecryptUpdate can be called multiple times if necessary
-	 */
-	if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, buf, buf_len))
-	{
-		handleErrors();
-	}
-
-	plaintext_len = len;
-
-	/* Finalise the decryption. Further plaintext bytes may be written at
-	 * this stage.
-	 */
-	if (1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len))
-	{
-		handleErrors();
-	}
-
-	plaintext_len += len;
-
-	/* Clean up */
-	EVP_CIPHER_CTX_free(ctx);
 
 	return plaintext_len;
+}
+
+void cryptor_free(EVP_CIPHER_CTX *ctx)
+{
+	EVP_CIPHER_CTX_free(ctx);
 }

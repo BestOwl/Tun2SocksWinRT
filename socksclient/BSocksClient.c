@@ -83,13 +83,16 @@ static void encrypt_handler(BSocksClient *o, uint8_t *data, int data_len)
 		random_iv(o->ss_iv, iv_size);
 		memcpy(o->cipher_buffer, o->ss_iv, iv_size);
 
+		// init encryptor
+		encryptor_Init(o->encryptor, o->ss_iv);
+
 		// copy header
-		en_header_size = encrypt(o->header_buffer, o->header_len, o->ss_iv, o->cipher_buffer + iv_size);
+		en_header_size = encrypt(o->encryptor, o->header_buffer, o->header_len, o->cipher_buffer + iv_size);
 
 		o->first_packet_sent = 1;
 	}
 
-	cipher_buf_len = encrypt(data, data_len, o->ss_iv, o->cipher_buffer + iv_size + en_header_size);
+	cipher_buf_len = encrypt(o->encryptor, data, data_len, o->cipher_buffer + iv_size + en_header_size);
 	cipher_buf_len += iv_size += en_header_size;
 
 	o->plain_len = data_len;
@@ -148,10 +151,13 @@ static void down_handler_done(BSocksClient *o, int data_len)
 		memcpy(o->ss_remote_iv, o->socks_recv_buf, o->ss_iv_len);
 		iv_size = o->ss_iv_len;
 
+		// init decryptor
+		decryptor_Init(o->decryptor, o->ss_remote_iv);
+
 		o->first_packet_recved = 1;
 	}
 
-	size_t len = decrypt(o->socks_recv_buf + iv_size, data_len - iv_size, o->ss_remote_iv, o->decrypted_buf);
+	size_t len = decrypt(o->decryptor, o->socks_recv_buf + iv_size, data_len - iv_size, o->decrypted_buf);
 
 	StreamRecvInterface_Done(&o->decrypt_if, len);
 
@@ -220,6 +226,10 @@ void connector_handler (BSocksClient* o, int is_error)
 
 	// init buffer
 	build_header(o);
+
+	// init cryptor
+	o->encryptor = EVP_CIPHER_CTX_new();
+	o->decryptor = EVP_CIPHER_CTX_new();
 
 	// init crypto io
 	init_crypto_io(o);
@@ -347,6 +357,10 @@ void BSocksClient_Free (BSocksClient *o)
             // free up I/O
             free_up_io(o);
 			free_crypto_io(o);
+
+			// free cryptor
+			cryptor_free(o->encryptor);
+			cryptor_free(o->decryptor);
         } 
         
         // free connection

@@ -33,6 +33,7 @@
 
 struct socks_crypto_info_t {
 	const char key[EVP_MAX_KEY_LENGTH];
+	size_t key_len;
 	int iv_size;
 	const EVP_CIPHER *cipher;
 	const EVP_MD *dgst;
@@ -41,5 +42,8 @@ struct socks_crypto_info_t {
 
 int cryptoman_Init(char  *crypto_method_name, char *password);
 int random_iv(char *iv, int size);
-int encrypt(uint8_t *buf, int buf_len, const char *iv, uint8_t *ciphertext);
-int decrypt(uint8_t *buf, int buf_len, const *iv, uint8_t *plaintext);
+int encryptor_Init(EVP_CIPHER_CTX *octx, const char *iv);
+int decryptor_Init(EVP_CIPHER_CTX *octx, const char *iv);
+int encrypt(EVP_CIPHER_CTX *ctx, uint8_t *buf, int buf_len, uint8_t *ciphertext);
+int decrypt(EVP_CIPHER_CTX *ctx, uint8_t *buf, int buf_len, uint8_t *plaintext);
+void cryptor_free(EVP_CIPHER_CTX *ctx);
