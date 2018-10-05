@@ -9,4 +9,7 @@
   <ItemGroup>
     <ClCompile Include="BSocksClient.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

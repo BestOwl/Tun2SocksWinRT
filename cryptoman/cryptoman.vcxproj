@@ -32,6 +32,9 @@
   <ItemGroup>
     <ClCompile Include="cryptoman.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{75089073-f04c-433b-b58c-c1e8f23ca1dc}</ProjectGuid>
     <Keyword>StaticLibrary</Keyword>
@@ -226,5 +229,12 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\vcpkg-export-20181005-212438.1.0.0\build\native\vcpkg-export-20181005-212438.targets" Condition="Exists('..\packages\vcpkg-export-20181005-212438.1.0.0\build\native\vcpkg-export-20181005-212438.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\vcpkg-export-20181005-212438.1.0.0\build\native\vcpkg-export-20181005-212438.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\vcpkg-export-20181005-212438.1.0.0\build\native\vcpkg-export-20181005-212438.targets'))" />
+  </Target>
 </Project>

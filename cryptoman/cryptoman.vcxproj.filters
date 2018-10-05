@@ -12,4 +12,7 @@
   <ItemGroup>
     <ClCompile Include="cryptoman.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

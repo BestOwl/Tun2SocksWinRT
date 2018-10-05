@@ -11,4 +11,7 @@
     <ClCompile Include="SockTun.c" />
     <ClCompile Include="tun2socks.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>
