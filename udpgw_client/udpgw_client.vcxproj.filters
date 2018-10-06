@@ -9,4 +9,7 @@
   <ItemGroup>
     <ClCompile Include="UdpGwClient.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>
